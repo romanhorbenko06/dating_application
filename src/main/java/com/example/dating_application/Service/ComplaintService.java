@@ -4,6 +4,7 @@ import com.example.dating_application.Exception.BusinessException;
 import com.example.dating_application.DTO.Response.ComplaintResponseDTO;
 import com.example.dating_application.Entity.Complaint;
 import com.example.dating_application.Entity.ComplaintStatus;
+import com.example.dating_application.Entity.Role;
 import com.example.dating_application.Repo.ComplaintRepository;
 import com.example.dating_application.Repo.UserRepository;
 import org.springframework.stereotype.Service;
@@ -33,11 +34,19 @@ public class ComplaintService {
             throw new BusinessException("You cannot report yourself");
         }
 
+        var reportedUser = userRepository.findById(reportedUserId)
+                .orElseThrow(() -> new BusinessException("Reported user not found"));
+
+        // Скарга на адміністратора не має адресата: розглядати її нікому,
+        // а в черзі модерації вона лише створювала б шум.
+        if (reportedUser.getRole() == Role.ADMIN) {
+            throw new BusinessException("Administrators cannot be reported");
+        }
+
         Complaint c = new Complaint();
         c.setReporter(userRepository.findById(fromUserId)
                 .orElseThrow(() -> new BusinessException("From user not found")));
-        c.setReportedUser(userRepository.findById(reportedUserId)
-                .orElseThrow(() -> new BusinessException("Reported user not found")));
+        c.setReportedUser(reportedUser);
         c.setReason(reason);
         c.setCreatedAt(LocalDateTime.now());
         c.setStatus(ComplaintStatus.PENDING);
@@ -45,10 +54,6 @@ public class ComplaintService {
         return complaintRepository.save(c);
     }
 
-    /**
-     * Скарги для адмін-панелі. status = null → усі (PENDING, REVIEWED і RESOLVED разом):
-     * раніше віддавались лише PENDING, тож опрацьовані скарги неможливо було переглянути.
-     */
     public List<Complaint> getComplaints(ComplaintStatus status) {
         return status == null
                 ? complaintRepository.findAllByOrderByCreatedAtDesc()
@@ -70,6 +75,19 @@ public class ComplaintService {
                 .orElseThrow(() -> new BusinessException("Complaint not found"));
 
         c.setStatus(ComplaintStatus.RESOLVED);
+        return complaintRepository.save(c);
+    }
+
+    /**
+     * Відхилити скаргу як безпідставну (FR-21.2). На відміну від resolve,
+     * означає, що порушення не підтвердилось і санкцій не буде.
+     */
+    public Complaint reject(Long complaintId) {
+
+        Complaint c = complaintRepository.findById(complaintId)
+                .orElseThrow(() -> new BusinessException("Complaint not found"));
+
+        c.setStatus(ComplaintStatus.REJECTED);
         return complaintRepository.save(c);
     }
 

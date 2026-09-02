@@ -1,9 +1,5 @@
 package com.example.dating_application.Websocket;
 
-/**
- * Конверт WebSocket-події: {type, payload}.
- * Дозволяє клієнту розрізняти типи подій (нове повідомлення, квитанція прочитання тощо).
- */
 public class WsEvent {
     private String type;
     private Object payload;

@@ -2,6 +2,7 @@ package com.example.dating_application.Security;
 
 import com.example.dating_application.Entity.User;
 import com.example.dating_application.Repo.UserRepository;
+import com.example.dating_application.Service.TokenRevocationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -12,23 +13,23 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 
 import java.util.Map;
 
-/**
- * Автентифікація на етапі WebSocket-рукостискання.
- * WebSocket не носить заголовок Authorization, тому JWT передається
- * query-параметром: ws://host/ws/chat?token=...
- * Якщо токен валідний — кладемо userId в атрибути сесії; інакше рукостискання відхиляється.
- */
+
 @Component
 public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
     public static final String USER_ID_ATTR = "userId";
 
+    public static final String JTI_ATTR = "jti";
+
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
+    private final TokenRevocationService tokenRevocationService;
 
-    public JwtHandshakeInterceptor(JwtUtil jwtUtil, UserRepository userRepository) {
+    public JwtHandshakeInterceptor(JwtUtil jwtUtil, UserRepository userRepository,
+                                   TokenRevocationService tokenRevocationService) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
+        this.tokenRevocationService = tokenRevocationService;
     }
 
     @Override
@@ -50,6 +51,12 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             return reject(response);
         }
 
+        // Розлогінений токен не відкриває нове з'єднання (FR-5)
+        String jti = jwtUtil.getJtiFromToken(token);
+        if (tokenRevocationService.isRevoked(jti)) {
+            return reject(response);
+        }
+
         String email = jwtUtil.getEmailFromToken(token);
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
@@ -62,6 +69,7 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
         }
 
         attributes.put(USER_ID_ATTR, user.getUserId());
+        attributes.put(JTI_ATTR, jti);
         return true;
     }
 

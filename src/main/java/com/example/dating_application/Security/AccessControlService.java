@@ -71,12 +71,6 @@ public class AccessControlService {
         return canEditProfile(userId);
     }
 
-    /**
-     * Переглядати чужий профіль не можна, якщо:
-     * - між користувачами є блок у будь-якому напрямку (взаємне приховування), або
-     * - акаунт назавжди забанений адміністратором.
-     * Адміністратор бачить усіх — модерація має працювати й по забанених.
-     */
     public boolean canViewProfile(Long userId) {
         User me = currentUser();
         if (me == null || userId == null) return false;

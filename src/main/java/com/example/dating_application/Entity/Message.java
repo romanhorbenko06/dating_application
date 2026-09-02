@@ -30,20 +30,14 @@ public class Message {
 
     private Boolean isRead;
 
-    /** Час останнього редагування; null — повідомлення не редагувалось (FR-17.3). */
     private LocalDateTime editedAt;
 
-    /**
-     * М'яке видалення (FR-17.4): рядок лишається, content стирається.
-     * Жорстке видалення розірвало б стрічку чату й квитанції прочитання,
-     * які посилаються на messageId.
-     */
+
     @Column(nullable = false)
     private Boolean isDeleted = false;
 
     private LocalDateTime deletedAt;
 
-    // getters & setters
 
     public Long getMessageId() {
         return messageId;

@@ -13,6 +13,7 @@ import com.example.dating_application.Repo.BlockRepository;
 import com.example.dating_application.Repo.ChatRepository;
 import com.example.dating_application.Repo.ComplaintRepository;
 import com.example.dating_application.Repo.MessageRepository;
+import com.example.dating_application.Repo.NotificationRepository;
 import com.example.dating_application.Repo.RequestRepository;
 import com.example.dating_application.Repo.PhotoRepository;
 import com.example.dating_application.Repo.UserRepository;
@@ -35,6 +36,7 @@ public class UserService {
     private final BlockRepository blockRepository;
     private final PhotoRepository photoRepository;
     private final PhotoStorageService photoStorageService;
+    private final NotificationRepository notificationRepository;
 
     public UserService(UserRepository userRepository,
                        ComplaintRepository complaintRepository,
@@ -43,7 +45,8 @@ public class UserService {
                        MessageRepository messageRepository,
                        BlockRepository blockRepository,
                        PhotoRepository photoRepository,
-                       PhotoStorageService photoStorageService) {
+                       PhotoStorageService photoStorageService,
+                       NotificationRepository notificationRepository) {
         this.userRepository = userRepository;
         this.complaintRepository = complaintRepository;
         this.requestRepository = requestRepository;
@@ -52,6 +55,7 @@ public class UserService {
         this.blockRepository = blockRepository;
         this.photoRepository = photoRepository;
         this.photoStorageService = photoStorageService;
+        this.notificationRepository = notificationRepository;
     }
 
     public User getById(Long id) {
@@ -100,14 +104,6 @@ public class UserService {
         return userRepository.save(u);
     }
 
-    /**
-     * Адмін-бан: постійне блокування акаунта. Знімати його не передбачено —
-     * рішення модератора остаточне (на відміну від блоку між дейтерами,
-     * який власник може зняти сам).
-     *
-     * Дані користувача лишаються в БД (потрібні для історії скарг),
-     * але акаунт перестає автентифікуватися й зникає з усіх видач.
-     */
     @Transactional
     public User blockUserPermanently(Long userId, String reason) {
         User u = getById(userId);
@@ -134,6 +130,16 @@ public class UserService {
     public void deleteUser(Long userId) {
         User u = getById(userId);
 
+        // Адміністратора не видаляє ніхто — ні інший адмін, ні він сам.
+        // Без цієї перевірки будь-який адмін міг вигребти всіх адміністраторів
+        // (і себе), а застосунок лишився б без модерації: AdminInitializer
+        // відновить лише дефолтний акаунт із application.properties, і лише при рестарті.
+        // Перевірка стоїть у сервісі, а не в контролері, бо сюди ведуть два шляхи:
+        // DELETE /api/admin/users/{id} і DELETE /api/users/{id}.
+        if (u.getRole() == Role.ADMIN) {
+            throw new BusinessException("Administrators cannot be deleted");
+        }
+
         // Прибираємо залежні записи, які посилаються на користувача (FK),
         // інакше видалення впаде на обмеженні цілісності.
 
@@ -146,18 +152,21 @@ public class UserService {
         // 3. Блокування, поставлені користувачем або на нього
         blockRepository.deleteByBlockerUserIdOrBlockedUserId(userId, userId);
 
-        // 4. Чати за участю користувача разом з їхніми повідомленнями
+        // 4. Сповіщення, адресовані користувачеві або спричинені ним
+        notificationRepository.deleteByRecipientUserIdOrActorUserId(userId, userId);
+
+        // 5. Чати за участю користувача разом з їхніми повідомленнями
         List<Chat> chats = chatRepository.findByUser1UserIdOrUser2UserId(userId, userId);
         for (Chat chat : chats) {
             messageRepository.deleteByChatChatId(chat.getChatId());
         }
         chatRepository.deleteAll(chats);
 
-        // 5. Файли фотографій з диска. Записи в БД підуть каскадно разом із користувачем,
+        // 6. Файли фотографій з диска. Записи в БД підуть каскадно разом із користувачем,
         //    але каскад не знає про диск — без цього кроку файли лишалися б назавжди.
         List<Photo> photos = photoRepository.findByUserUserId(userId);
 
-        // 6. Сам користувач (фото й теги видаляються каскадно)
+        // 7. Сам користувач (фото й теги видаляються каскадно)
         userRepository.delete(u);
 
         photos.forEach(photo -> photoStorageService.deleteAfterCommit(photo.getFileName()));

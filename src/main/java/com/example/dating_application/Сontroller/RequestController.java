@@ -5,6 +5,7 @@ import com.example.dating_application.Exception.BusinessException;
 import com.example.dating_application.DTO.Request.SendRequestDTO;
 import com.example.dating_application.DTO.Response.RequestResponseDTO;
 import com.example.dating_application.Entity.User;
+import com.example.dating_application.Service.NotificationService;
 import com.example.dating_application.Service.RequestService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,9 +24,12 @@ import java.util.stream.Collectors;
 public class RequestController {
 
     private final RequestService requestService;
+    private final NotificationService notificationService;
 
-    public RequestController(RequestService requestService) {
+    public RequestController(RequestService requestService,
+                             NotificationService notificationService) {
         this.requestService = requestService;
+        this.notificationService = notificationService;
     }
 
     private Long getCurrentUserId() {
@@ -40,6 +44,10 @@ public class RequestController {
     public ResponseEntity<RequestResponseDTO> sendLike(@Valid @RequestBody SendRequestDTO dto) {
         Long currentUserId = getCurrentUserId();
         var request = requestService.send(currentUserId, dto);
+
+        // Сповіщення адресату (FR-19.2) — після збереження лайку
+        notificationService.notifyNewLike(request.getToUser(), request.getFromUser());
+
         return ResponseEntity.ok(requestService.toResponseDTO(request));
     }
 
@@ -48,6 +56,10 @@ public class RequestController {
     public ResponseEntity<Map<String, Object>> acceptLike(@PathVariable Long requestId) {
         Long currentUserId = getCurrentUserId();
         var chat = requestService.accept(requestId, currentUserId);
+
+        // Взаємна симпатія — сповіщаємо обох (UC-08)
+        notificationService.notifyNewMatch(chat);
+
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Like accepted and chat created");
         response.put("chatId", chat.getChatId());

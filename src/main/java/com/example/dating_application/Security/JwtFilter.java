@@ -2,6 +2,7 @@ package com.example.dating_application.Security;
 
 import com.example.dating_application.Entity.User;
 import com.example.dating_application.Repo.UserRepository;
+import com.example.dating_application.Service.TokenRevocationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,10 +22,13 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
+    private final TokenRevocationService tokenRevocationService;
 
-    public JwtFilter(JwtUtil jwtUtil, UserRepository userRepository) {
+    public JwtFilter(JwtUtil jwtUtil, UserRepository userRepository,
+                     TokenRevocationService tokenRevocationService) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
+        this.tokenRevocationService = tokenRevocationService;
     }
 
     @Override
@@ -40,6 +44,13 @@ public class JwtFilter extends OncePerRequestFilter {
             String token = header.substring(7);
 
             if (!jwtUtil.isTokenValid(token)) {
+                SecurityContextHolder.clearContext();
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // Вихід із застосунку (FR-5): підпис ще валідний, але токен анульовано
+            if (tokenRevocationService.isRevoked(jwtUtil.getJtiFromToken(token))) {
                 SecurityContextHolder.clearContext();
                 filterChain.doFilter(request, response);
                 return;

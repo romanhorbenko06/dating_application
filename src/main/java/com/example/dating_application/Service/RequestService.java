@@ -6,6 +6,7 @@ import com.example.dating_application.DTO.Response.RequestResponseDTO;
 import com.example.dating_application.Entity.Chat;
 import com.example.dating_application.Entity.Request;
 import com.example.dating_application.Entity.RequestStatus;
+import com.example.dating_application.Entity.Role;
 import com.example.dating_application.Repo.BlockRepository;
 import com.example.dating_application.Repo.RequestRepository;
 import com.example.dating_application.Repo.UserRepository;
@@ -63,6 +64,11 @@ public class RequestService {
                 .orElseThrow(() -> new BusinessException("To user not found"));
         if (Boolean.TRUE.equals(toUser.getBlocked())) {
             throw new BusinessException("Interaction with this user is not available");
+        }
+        // Адміністратор не бере участі в знайомствах: зі стрічки він виключений,
+        // але без цієї перевірки прямий виклик API все одно створював лайк на нього.
+        if (toUser.getRole() == Role.ADMIN) {
+            throw new BusinessException("Administrators cannot be liked");
         }
 
         Request r = new Request();

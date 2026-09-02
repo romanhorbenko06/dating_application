@@ -34,7 +34,6 @@ public class TagController {
         throw new BusinessException("User not authenticated");
     }
 
-    /** Каталог усіх доступних тегів (фіксований, засівається при старті). */
     @GetMapping
     public ResponseEntity<List<TagResponseDTO>> getAllTags() {
         List<TagResponseDTO> tags = tagService.getAllTags().stream()
@@ -43,7 +42,6 @@ public class TagController {
         return ResponseEntity.ok(tags);
     }
 
-    /** Теги (інтереси) поточного користувача. */
     @GetMapping("/my")
     public ResponseEntity<List<TagResponseDTO>> getMyTags() {
         Long currentUserId = getCurrentUserId();
@@ -53,11 +51,6 @@ public class TagController {
         return ResponseEntity.ok(tags);
     }
 
-    /**
-     * Теги (інтереси) іншого користувача — частина його профілю, тож видимість
-     * та сама, що й у GET /api/users/{id}: закрито при блоці в будь-якому напрямку
-     * та для забанених адміном акаунтів.
-     */
     @GetMapping("/user/{userId}")
     @PreAuthorize("@accessControlService.canViewProfile(#userId)")
     public ResponseEntity<List<TagResponseDTO>> getUserTags(@PathVariable Long userId) {
@@ -67,7 +60,6 @@ public class TagController {
         return ResponseEntity.ok(tags);
     }
 
-    /** Додати тег до свого профілю. */
     @PostMapping("/my/{tagId}")
     public ResponseEntity<Map<String, Object>> addTagToMe(@PathVariable Long tagId) {
         Long currentUserId = getCurrentUserId();
@@ -77,7 +69,6 @@ public class TagController {
         return ResponseEntity.ok(response);
     }
 
-    /** Прибрати тег зі свого профілю. */
     @DeleteMapping("/my/{tagId}")
     public ResponseEntity<Map<String, Object>> removeTagFromMe(@PathVariable Long tagId) {
         Long currentUserId = getCurrentUserId();

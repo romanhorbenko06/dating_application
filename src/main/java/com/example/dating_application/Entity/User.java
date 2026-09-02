@@ -53,11 +53,6 @@ public class User {
     @Column(nullable = false)
     private Boolean isVerified = false;
 
-    /**
-     * Адмін-бан: постійне блокування акаунта модератором.
-     * Знімати його не передбачено — рішення адміністратора остаточне.
-     * Блокування дейтером дейтера — це окрема сутність Block, а не це поле.
-     */
     @Column(nullable = false)
     private Boolean isBlocked = false;
 

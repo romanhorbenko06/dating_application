@@ -14,19 +14,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Керує WebSocket-сесіями та розсилкою повідомлень.
- *
- * Реєстр: userId -> (sessionId -> session). Один користувач може мати кілька
- * відкритих сесій (по одній на девайс). Вкладена мапа за sessionId дає O(1)
- * і на додавання, і на видалення при дисконекті.
- *
- * Сесії обгортаються в ConcurrentWebSocketSessionDecorator — це робить відправку
- * потокобезпечною та захищає від повільних клієнтів (ліміт буфера + таймаут).
- *
- * Вхідні фрейми НЕ обробляються (handleTextMessage порожній): повідомлення
- * надсилаються через REST → сервіс, який потім викликає sendToUser().
- */
+
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
@@ -93,11 +81,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    /**
-     * Примусово розриває всі WS-сесії користувача. Викликається після адмін-бану:
-     * JWT-фільтр закриє йому REST одразу, але вже відкрите сокет-з'єднання
-     * інакше жило б до кінця дії токена.
-     */
+
     public void disconnectUser(Long userId) {
         Map<String, WebSocketSession> sessions = sessionsByUser.remove(userId);
         if (sessions == null) {
@@ -111,6 +95,33 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             }
         }
         logger.info("Closed {} WS session(s) of blocked user {}", sessions.size(), userId);
+    }
+
+    public void disconnectToken(Long userId, String jti) {
+        if (jti == null) {
+            return;
+        }
+        Map<String, WebSocketSession> sessions = sessionsByUser.get(userId);
+        if (sessions == null) {
+            return;
+        }
+        int closed = 0;
+        for (WebSocketSession session : sessions.values()) {
+            if (!jti.equals(session.getAttributes().get(JwtHandshakeInterceptor.JTI_ATTR))) {
+                continue;
+            }
+            try {
+                // NORMAL, а не POLICY_VIOLATION: це штатний вихід, не санкція
+                session.close(CloseStatus.NORMAL);
+                closed++;
+            } catch (IOException e) {
+                logger.warn("Failed to close WS session on logout of user {}", userId, e);
+            }
+        }
+        // з реєстру сесії приберуться в afterConnectionClosed
+        if (closed > 0) {
+            logger.debug("Closed {} WS session(s) on logout of user {}", closed, userId);
+        }
     }
 
     private void closeQuietly(WebSocketSession session) {

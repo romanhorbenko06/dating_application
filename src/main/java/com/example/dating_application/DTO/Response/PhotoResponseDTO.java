@@ -1,12 +1,6 @@
 package com.example.dating_application.DTO.Response;
 
-/**
- * Метадані фото — без вкладеної entity User і БЕЗ імені файлу на диску:
- * назовні внутрішня структура сховища не світиться.
- *
- * Замість імені файлу віддаємо {@code url} — шлях до ендпоінта видачі байтів.
- * Фронт підставляє його як є й не знає, де фізично лежить файл.
- */
+
 public class PhotoResponseDTO {
     private Long photoId;
     private String url;

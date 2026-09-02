@@ -14,7 +14,12 @@ import org.springframework.stereotype.Service;
 
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -58,8 +63,24 @@ public class MessageService {
         return messageRepository.save(msg);
     }
 
-    public List<Message> getChatMessages(Long chatId) {
-        return messageRepository.findByChatChatIdOrderBySentAt(chatId);
+    /**
+     * Сторінка історії чату: найсвіжіші `limit` повідомлень, або старіші за `beforeMessageId`
+     * (прокрутка вгору). Повертає у ХРОНОЛОГІЧНОМУ порядку — так їх і малює клієнт.
+     *
+     * Курсор, а не offset: чат поповнюється під час читання, і зі зсувом сторінки
+     * при прокрутці вгору повідомлення дублювались би або пропускались.
+     */
+    public List<Message> getChatMessages(Long chatId, Long beforeMessageId, int limit) {
+        Pageable page = PageRequest.of(0, limit);
+
+        List<Message> newestFirst = beforeMessageId == null
+                ? messageRepository.findByChatChatIdOrderByMessageIdDesc(chatId, page)
+                : messageRepository.findByChatChatIdAndMessageIdLessThanOrderByMessageIdDesc(
+                        chatId, beforeMessageId, page);
+
+        List<Message> chronological = new ArrayList<>(newestFirst);
+        Collections.reverse(chronological);
+        return chronological;
     }
 
     /**
@@ -78,11 +99,7 @@ public class MessageService {
         return unread.stream().map(Message::getMessageId).collect(Collectors.toList());
     }
 
-    /**
-     * Редагування свого повідомлення (FR-17.3).
-     * Правити чуже не можна нікому, навіть адміністратору: його інструмент — бан,
-     * а не підміна чужих слів у чаті.
-     */
+
     @Transactional
     public Message editMessage(Long messageId, Long editorId, String newContent) {
         Message msg = messageRepository.findById(messageId)
@@ -109,11 +126,7 @@ public class MessageService {
                 .orElse(false);
     }
 
-    /**
-     * Видалення свого повідомлення (FR-17.4) — м'яке: рядок лишається,
-     * вміст стирається назавжди, стоїть прапорець isDeleted.
-     * Ідемпотентне: повторний виклик нічого не змінює (див. wasAlreadyDeleted).
-     */
+
     @Transactional
     public Message deleteMessage(Long messageId, Long deleterId) {
         Message msg = messageRepository.findById(messageId)

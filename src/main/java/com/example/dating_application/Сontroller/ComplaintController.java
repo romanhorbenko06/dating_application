@@ -30,7 +30,6 @@ public class ComplaintController {
         throw new BusinessException("User not authenticated");
     }
 
-    /** Будь-який автентифікований користувач може поскаржитись на іншого. */
     @PostMapping
     public ResponseEntity<ComplaintResponseDTO> fileComplaint(@Valid @RequestBody ComplaintRequestDTO dto) {
         Long currentUserId = getCurrentUserId();

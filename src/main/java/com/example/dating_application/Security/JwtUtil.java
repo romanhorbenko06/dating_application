@@ -1,6 +1,7 @@
 package com.example.dating_application.Security;
 
 import com.example.dating_application.Entity.User;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import jakarta.annotation.PostConstruct;
@@ -11,6 +12,7 @@ import io.jsonwebtoken.security.Keys;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 
 @Component
@@ -39,6 +41,10 @@ public class JwtUtil {
     private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
                 .claims(claims)
+                // jti — унікальний id токена. Потрібен для виходу (FR-5): відкликати
+                // можна лише те, що вміємо назвати. Дає точковий logout — гасне
+                // конкретний токен, а не всі сесії користувача.
+                .id(UUID.randomUUID().toString())
                 .subject(subject)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
@@ -47,12 +53,25 @@ public class JwtUtil {
     }
 
     public String getEmailFromToken(String token) {
+        return parseClaims(token).getSubject();
+    }
+
+    /** Claim jti — ключ у чорному списку відкликаних токенів. */
+    public String getJtiFromToken(String token) {
+        return parseClaims(token).getId();
+    }
+
+    /** До цього моменту токен треба тримати в чорному списку; далі він недійсний сам. */
+    public Date getExpirationFromToken(String token) {
+        return parseClaims(token).getExpiration();
+    }
+
+    private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(key)
                 .build()
                 .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+                .getBody();
     }
 
     // Геттера ролі з токена свідомо немає: авторитети мають братися з БД

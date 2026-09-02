@@ -12,14 +12,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Блокування дейтером дейтера.
- *
- * Ефект симетричний: після блокування користувачі зникають один в одного
- * зі стрічки, не можуть надсилати лайки, писати в чат і бачити фото —
- * незалежно від того, хто саме натиснув «заблокувати».
- * Зняти блок може лише той, хто його поставив.
- */
 @Service
 public class BlockService {
 
@@ -71,7 +63,6 @@ public class BlockService {
         return blockRepository.findByBlockerUserIdOrderByCreatedAtDesc(blockerId);
     }
 
-    /** Чи є блок між двома користувачами в будь-якому напрямку. */
     public boolean isBlockedBetween(Long userA, Long userB) {
         return blockRepository.existsBetween(userA, userB);
     }

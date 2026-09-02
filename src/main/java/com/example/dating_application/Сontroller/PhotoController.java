@@ -50,7 +50,6 @@ public class PhotoController {
         throw new BusinessException("User not authenticated");
     }
 
-    /** Метадані фото (без байтів): id, посилання на видачу, тип, чи головне. */
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<PhotoResponseDTO>> getUserPhotos(@PathVariable Long userId) {
         Long currentUserId = getCurrentUserId();
@@ -60,21 +59,12 @@ public class PhotoController {
         return ResponseEntity.ok(photos);
     }
 
-    /**
-     * Пачка фотографій одним запитом, готова до показу: кожна — data-URI
-     * для прямої підстановки в <img src="...">.
-     * Немає метчу — порожній список, а не помилка.
-     */
     @GetMapping("/user/{userId}/content")
     public ResponseEntity<List<PhotoContentDTO>> getUserPhotoContents(@PathVariable Long userId) {
         Long currentUserId = getCurrentUserId();
         return ResponseEntity.ok(photoService.getAccessiblePhotoContents(currentUserId, userId));
     }
 
-    /**
-     * Одне фото сирими байтами. Той самий гейт «фото лише після метчу»:
-     * без нього — 403, тож пікселі недосяжні навіть при відомому id.
-     */
     @GetMapping("/{photoId}/content")
     public ResponseEntity<byte[]> getPhotoContent(@PathVariable Long photoId) {
         Long currentUserId = getCurrentUserId();
@@ -88,7 +78,6 @@ public class PhotoController {
                 .body(binary.data());
     }
 
-    /** Завантаження файлом (multipart). Формат перевіряється за вмістом, не за ім'ям. */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PhotoResponseDTO> uploadPhoto(
             @RequestPart("file") MultipartFile file,

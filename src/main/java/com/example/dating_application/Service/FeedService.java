@@ -19,9 +19,6 @@ public class FeedService {
     }
 
     public User getNextProfile(Long userId, SearchCriteria criteria) {
-        // Вік → межі дати народження (фільтрація виконується в БД):
-        //   minAge → народжений НЕ ПІЗНІШЕ ніж (сьогодні - minAge) років
-        //   maxAge → народжений НЕ РАНІШЕ ніж (сьогодні - (maxAge + 1)) років
         boolean hasMinAge = criteria.getMinAge() != null;
         boolean hasMaxAge = criteria.getMaxAge() != null;
         LocalDate bornBefore = hasMinAge

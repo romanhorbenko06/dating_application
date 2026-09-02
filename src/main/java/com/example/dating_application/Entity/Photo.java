@@ -10,7 +10,6 @@ public class Photo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long photoId;
 
-    /** Лише ІМ'Я файлу на диску (UUID + розширення). Самі байти — у теці сховища. */
     private String fileName;
 
     private Boolean isMain;

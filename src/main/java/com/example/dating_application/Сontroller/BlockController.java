@@ -14,11 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Блокування дейтером дейтера. Блокувати може лише сам користувач (за себе),
- * тому окремих перевірок @PreAuthorize тут не треба: усе прив'язано
- * до поточного userId з токена.
- */
 @CrossOrigin
 @RestController
 @RequestMapping("/api/blocks")
@@ -38,7 +33,6 @@ public class BlockController {
         throw new BusinessException("User not authenticated");
     }
 
-    /** Заблокувати користувача: він зникає зі стрічки, чатів, лайків і фото — в обидва боки. */
     @PostMapping("/{userId}")
     public ResponseEntity<BlockResponseDTO> blockUser(@PathVariable Long userId) {
         Long currentUserId = getCurrentUserId();
@@ -46,7 +40,6 @@ public class BlockController {
         return ResponseEntity.ok(blockService.toResponseDTO(block));
     }
 
-    /** Зняти власне блокування. */
     @DeleteMapping("/{userId}")
     public ResponseEntity<Map<String, Object>> unblockUser(@PathVariable Long userId) {
         Long currentUserId = getCurrentUserId();
@@ -57,7 +50,6 @@ public class BlockController {
         return ResponseEntity.ok(response);
     }
 
-    /** Список тих, кого заблокував поточний користувач. */
     @GetMapping
     public ResponseEntity<List<BlockResponseDTO>> getMyBlocks() {
         Long currentUserId = getCurrentUserId();

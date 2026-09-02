@@ -2,9 +2,6 @@ package com.example.dating_application.DTO.Response;
 
 import java.util.List;
 
-/**
- * Квитанція прочитання: користувач readerId прочитав повідомлення messageIds у чаті chatId.
- */
 public class ReadReceiptDTO {
     private Long chatId;
     private Long readerId;

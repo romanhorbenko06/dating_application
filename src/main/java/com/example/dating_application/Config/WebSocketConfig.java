@@ -23,7 +23,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
-    /** Ліміти буфера повідомлень (вхідні фрейми ми не обробляємо, тож тримаємо малими). */
     @Bean
     public ServletServerContainerFactoryBean createWebSocketContainer() {
         ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();

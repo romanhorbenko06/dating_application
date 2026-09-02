@@ -34,12 +34,6 @@ public class AdminController {
         this.chatWebSocketHandler = chatWebSocketHandler;
     }
 
-    /**
-     * Скарги, найсвіжіші першими.
-     * Без параметра — УСІ (включно з опрацьованими); з ?status=PENDING|REVIEWED|RESOLVED
-     * — лише потрібний стан. Раніше ендпоінт мовчки віддавав тільки PENDING,
-     * через що історію модерації не було де подивитись.
-     */
     @GetMapping("/complaints")
     public ResponseEntity<List<ComplaintResponseDTO>> getComplaints(
             @RequestParam(required = false) ComplaintStatus status) {
@@ -69,11 +63,13 @@ public class AdminController {
         return ResponseEntity.ok(complaintService.toResponseDTO(complaint));
     }
 
-    /**
-     * Постійне блокування акаунта. Незворотне: ендпоінта для розблокування
-     * свідомо немає — рішення модератора остаточне.
-     * Забанений втрачає і REST-доступ (JwtFilter), і відкриті WS-з'єднання.
-     */
+    /** Відхилити скаргу як безпідставну (FR-21.2) — порушення не підтвердилось. */
+    @PutMapping("/complaints/{id}/reject")
+    public ResponseEntity<ComplaintResponseDTO> rejectComplaint(@PathVariable Long id) {
+        var complaint = complaintService.reject(id);
+        return ResponseEntity.ok(complaintService.toResponseDTO(complaint));
+    }
+
     @PutMapping("/users/{id}/block")
     public ResponseEntity<BlockedUserDTO> blockUser(@PathVariable Long id,
                                                     @Valid @RequestBody(required = false) AdminBlockRequestDTO dto) {

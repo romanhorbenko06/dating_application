@@ -2,10 +2,7 @@ package com.example.dating_application.DTO.Response;
 
 import java.time.LocalDateTime;
 
-/**
- * Безпечне представлення повідомлення — відправник лише як id + ім'я,
- * без email/ролі/статусу верифікації.
- */
+
 public class MessageResponseDTO {
     private Long messageId;
     private Long chatId;
@@ -14,9 +11,7 @@ public class MessageResponseDTO {
     private String content;
     private LocalDateTime sentAt;
     private Boolean isRead;
-    /** null — не редагувалось; інакше час останньої правки. */
     private LocalDateTime editedAt;
-    /** true — повідомлення видалене автором; content у такому разі null. */
     private Boolean isDeleted;
 
     public MessageResponseDTO() {

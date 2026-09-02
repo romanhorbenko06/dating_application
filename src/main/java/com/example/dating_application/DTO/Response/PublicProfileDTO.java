@@ -8,10 +8,7 @@ import com.example.dating_application.Entity.Temperament;
 
 import java.time.LocalDate;
 
-/**
- * Публічне представлення профілю для перегляду іншими користувачами.
- * НЕ містить приватних даних (email, passwordhash, role, isVerified).
- */
+
 public class PublicProfileDTO {
     private Long userId;
     private String name;

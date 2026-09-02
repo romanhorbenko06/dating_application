@@ -66,7 +66,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
                                   @Param("bornAfter") LocalDate bornAfter,
                                   Pageable pageable);
 
-    /** Забанені адміністратором акаунти (для адмін-панелі). */
     List<User> findByIsBlockedTrueOrderByBlockedAtDesc();
 }
 

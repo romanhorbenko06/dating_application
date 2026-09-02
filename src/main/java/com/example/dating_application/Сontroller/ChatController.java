@@ -1,6 +1,9 @@
 package com.example.dating_application.Сontroller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import org.springframework.validation.annotation.Validated;
 import com.example.dating_application.Exception.BusinessException;
 import com.example.dating_application.DTO.Request.EditMessageDTO;
 import com.example.dating_application.DTO.Request.SendMessageDTO;
@@ -10,6 +13,7 @@ import com.example.dating_application.Entity.User;
 import com.example.dating_application.Repo.ChatRepository;
 import com.example.dating_application.Service.ChatService;
 import com.example.dating_application.Service.MessageService;
+import com.example.dating_application.Service.NotificationService;
 import com.example.dating_application.Websocket.ChatRealtimeNotifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,19 +29,25 @@ import java.util.stream.Collectors;
 @CrossOrigin
 @RestController
 @RequestMapping("/api/chats")
+@Validated
 public class ChatController {
+
+    private static final int DEFAULT_MESSAGE_LIMIT = 50;
 
     private final ChatService chatService;
     private final MessageService messageService;
     private final ChatRepository chatRepository;
     private final ChatRealtimeNotifier chatRealtimeNotifier;
+    private final NotificationService notificationService;
 
     public ChatController(ChatService chatService, MessageService messageService,
-                          ChatRepository chatRepository, ChatRealtimeNotifier chatRealtimeNotifier) {
+                          ChatRepository chatRepository, ChatRealtimeNotifier chatRealtimeNotifier,
+                          NotificationService notificationService) {
         this.chatService = chatService;
         this.messageService = messageService;
         this.chatRepository = chatRepository;
         this.chatRealtimeNotifier = chatRealtimeNotifier;
+        this.notificationService = notificationService;
     }
 
     private Long getCurrentUserId() {
@@ -67,8 +77,14 @@ public class ChatController {
 
     @GetMapping("/{chatId}/messages")
     @PreAuthorize("@accessControlService.canReadChat(#chatId)")
-    public ResponseEntity<List<MessageResponseDTO>> getChatMessages(@PathVariable Long chatId) {
-        List<MessageResponseDTO> messages = messageService.getChatMessages(chatId).stream()
+    public ResponseEntity<List<MessageResponseDTO>> getChatMessages(
+            @PathVariable Long chatId,
+            @RequestParam(required = false) Long before,
+            @RequestParam(required = false, defaultValue = "" + DEFAULT_MESSAGE_LIMIT)
+            @Min(value = 1, message = "limit must be at least 1")
+            @Max(value = 200, message = "limit must not exceed 200") int limit) {
+
+        List<MessageResponseDTO> messages = messageService.getChatMessages(chatId, before, limit).stream()
                 .map(messageService::toResponseDTO)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(messages);
@@ -86,10 +102,13 @@ public class ChatController {
         // 2. Пушимо обом учасникам через WebSocket (наживо)
         chatRealtimeNotifier.notifyNewMessage(message.getChat(), responseDTO);
 
+        // 3. Запис у центр сповіщень адресата (FR-19.3): пуш побачить лише той,
+        //    хто зараз онлайн, а сповіщення має дочекатися й офлайнового
+        notificationService.notifyNewMessage(message.getChat(), message.getSender());
+
         return ResponseEntity.ok(responseDTO);
     }
 
-    /** Редагувати СВОЄ повідомлення (FR-17.3). Чуже не може ніхто, включно з адміном. */
     @PutMapping("/messages/{messageId}")
     @PreAuthorize("@accessControlService.canEditMessage(#messageId)")
     public ResponseEntity<MessageResponseDTO> editMessage(@PathVariable Long messageId,
@@ -104,10 +123,6 @@ public class ChatController {
         return ResponseEntity.ok(responseDTO);
     }
 
-    /**
-     * Видалити СВОЄ повідомлення (FR-17.4). Видалення м'яке: повідомлення
-     * лишається в стрічці як «видалене», вміст стирається.
-     */
     @DeleteMapping("/messages/{messageId}")
     @PreAuthorize("@accessControlService.canDeleteMessage(#messageId)")
     public ResponseEntity<MessageResponseDTO> deleteMessage(@PathVariable Long messageId) {
@@ -125,7 +140,6 @@ public class ChatController {
         return ResponseEntity.ok(responseDTO);
     }
 
-    /** Позначити повідомлення в чаті прочитаними + надіслати квитанцію відправнику наживо. */
     @PutMapping("/{chatId}/read")
     @PreAuthorize("@accessControlService.canReadChat(#chatId)")
     public ResponseEntity<Map<String, Object>> markChatRead(@PathVariable Long chatId) {

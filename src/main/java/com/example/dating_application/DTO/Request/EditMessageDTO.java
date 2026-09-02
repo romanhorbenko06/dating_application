@@ -3,7 +3,6 @@ package com.example.dating_application.DTO.Request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-/** Новий текст повідомлення (FR-17.3). Чат і автор беруться з messageId та токена. */
 public class EditMessageDTO {
 
     @NotBlank(message = "Message content is required")

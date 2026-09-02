@@ -14,17 +14,20 @@ public interface BlockRepository extends JpaRepository<Block, Long> {
 
     List<Block> findByBlockerUserIdOrderByCreatedAtDesc(Long blockerId);
 
-    /**
-     * Чи існує блок між двома користувачами В БУДЬ-ЯКОМУ напрямку.
-     * Саме цей метод використовують усі перевірки доступу: ефект блокування
-     * симетричний — не бачать один одного обидва.
-     */
+
     @Query("""
             SELECT COUNT(b) > 0 FROM Block b
             WHERE (b.blocker.userId = :userA AND b.blocked.userId = :userB)
                OR (b.blocker.userId = :userB AND b.blocked.userId = :userA)
             """)
     boolean existsBetween(@Param("userA") Long userA, @Param("userB") Long userB);
+
+    @Query("""
+            SELECT CASE WHEN b.blocker.userId = :userId THEN b.blocked.userId ELSE b.blocker.userId END
+            FROM Block b
+            WHERE b.blocker.userId = :userId OR b.blocked.userId = :userId
+            """)
+    List<Long> findCounterpartIds(@Param("userId") Long userId);
 
     /** Прибирання блоків при видаленні акаунта (інакше видалення впаде на FK). */
     void deleteByBlockerUserIdOrBlockedUserId(Long blockerId, Long blockedId);

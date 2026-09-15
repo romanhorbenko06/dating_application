@@ -120,6 +120,40 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<!--
+				Покриття тестами. prepare-agent чіпляє агент до JVM тестів,
+				report збирає звіт у target/site/jacoco (html — для очей, csv — для
+				автоматики). Порогу навмисно не ставимо: він має сенс, коли покриття
+				вже підтягнуте, інакше збірка червоніє на кожному кроці.
+			-->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.13</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<excludes>
+						<!-- Згенеровані Spring'ом проксі та сам клас запуску міряти нема сенсу -->
+						<exclude>**/DatingApplication.class</exclude>
+						<exclude>**/DTO/**</exclude>
+						<exclude>**/Entity/**</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.springdoc</groupId>
 				<artifactId>springdoc-openapi-maven-plugin</artifactId>

@@ -35,3 +35,8 @@ build/
 ### Сховище завантажених фото (не в репозиторій) ###
 photos/
 
+### Локальні секрети (не комітяться) ###
+src/main/resources/application-local.properties
+
+### macOS ###
+.DS_Store

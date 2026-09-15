@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>znaidy — код підтвердження</title>
+<!--[if mso]>
+<style>
+  body,table,td,a{font-family:Arial,Helvetica,sans-serif !important}
+</style>
+<![endif]-->
+<style>
+  @media only screen and (max-width:620px){
+    .z-wrap{width:100% !important}
+    .z-pad{padding-left:24px !important;padding-right:24px !important}
+    .z-code{font-size:34px !important;letter-spacing:8px !important}
+    .z-h1{font-size:26px !important}
+    .z-stack{display:block !important;width:100% !important;padding-right:0 !important;padding-bottom:14px !important}
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#e7e0da;">
+<span style="display:none !important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;mso-hide:all;">Ваш код підтвердження znaidy — {{CODE}}. Діє {{TTL}} хвилин, нікому його не повідомляйте.</span>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#e7e0da;">
+  <tr>
+    <td align="center" style="padding:28px 12px 40px;">
+
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="z-wrap" style="width:600px;max-width:600px;">
+
+        <!-- логотип: той самий двоколірний напис, що й у застосунку (znai + dy акцентом) -->
+        <tr>
+          <td align="center" style="padding:0 0 18px;">
+            <p style="margin:0;font-family:'Manrope',Arial,Helvetica,sans-serif;font-size:21px;line-height:30px;mso-line-height-rule:exactly;letter-spacing:-0.8px;color:#1c1518;font-weight:bold;">znai<span style="color:#d6336c;">dy</span></p>
+          </td>
+        </tr>
+
+        <!-- картка -->
+        <tr>
+          <td bgcolor="#ffffff" style="background-color:#ffffff;border:1px solid #ddd3cd;border-radius:18px;">
+
+            <!-- темна шапка -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+              <tr>
+                <td bgcolor="#1c1518" align="center" class="z-pad" style="background-color:#1c1518;padding:38px 40px 34px;border-radius:18px 18px 0 0;">
+                  <p style="margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#c78ba4;font-weight:bold;">Підтвердження пошти</p>
+                  <h1 class="z-h1" style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:38px;mso-line-height-rule:exactly;color:#ffffff;font-weight:normal;">Вітаємо в znaidy</h1>
+                  <p style="margin:12px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:23px;mso-line-height-rule:exactly;color:#c9bcc2;">Залишився один крок — введіть код нижче, щоб завершити реєстрацію.</p>
+                </td>
+              </tr>
+            </table>
+
+            <!-- код -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+              <tr>
+                <td align="center" class="z-pad" style="padding:34px 40px 10px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+                    <tr>
+                      <td align="center" bgcolor="#fdeef4" style="background-color:#fdeef4;border:1px solid #f6d8e3;border-radius:14px;padding:26px 20px 22px;">
+                        <p style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#b3768f;font-weight:bold;">Ваш код</p>
+                        <p class="z-code" style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:40px;line-height:50px;mso-line-height-rule:exactly;letter-spacing:12px;color:#8f2249;font-weight:bold;">{{CODE}}</p>
+                        <p style="margin:14px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;mso-line-height-rule:exactly;color:#9c7688;">Код діє <strong style="color:#8f2249;">{{TTL}} хвилин</strong></p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- кнопка -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+              <tr>
+                <td align="center" class="z-pad" style="padding:22px 40px 8px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td align="center" bgcolor="#d6336c" style="background-color:#d6336c;border-radius:13px;">
+                        <a href="{{VERIFY_URL}}" style="display:block;padding:16px 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:20px;mso-line-height-rule:exactly;color:#ffffff;font-weight:bold;text-decoration:none;border-radius:13px;">Перейти до підтвердження</a>
+                      </td>
+                    </tr>
+                  </table>
+                  <p style="margin:14px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;mso-line-height-rule:exactly;color:#9a8f89;">Код вводиться на сторінці, з якої ви починали реєстрацію.</p>
+                </td>
+              </tr>
+            </table>
+
+            <!-- розділювач -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+              <tr>
+                <td class="z-pad" style="padding:26px 40px 0;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+                    <tr><td height="1" bgcolor="#f2eae5" style="height:1px;background-color:#f2eae5;line-height:1px;font-size:0;">&nbsp;</td></tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- що далі -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+              <tr>
+                <td class="z-pad" style="padding:24px 40px 4px;">
+                  <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#b3a7a0;font-weight:bold;">Що далі</p>
+
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+                    <tr>
+                      <td valign="top" width="34" style="width:34px;padding-bottom:16px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="24" height="24" align="center" valign="middle" bgcolor="#fdeef4" style="width:24px;height:24px;background-color:#fdeef4;border-radius:12px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:24px;mso-line-height-rule:exactly;color:#8f2249;font-weight:bold;">1</td></tr></table>
+                      </td>
+                      <td valign="top" style="padding-bottom:16px;">
+                        <p style="margin:0 0 3px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;mso-line-height-rule:exactly;color:#1c1518;font-weight:bold;">Доповніть анкету</p>
+                        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:21px;mso-line-height-rule:exactly;color:#6e6259;">Оберіть інтереси зі 118 тем — за ними будується стрічка.</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td valign="top" width="34" style="width:34px;padding-bottom:16px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="24" height="24" align="center" valign="middle" bgcolor="#fdeef4" style="width:24px;height:24px;background-color:#fdeef4;border-radius:12px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:24px;mso-line-height-rule:exactly;color:#8f2249;font-weight:bold;">2</td></tr></table>
+                      </td>
+                      <td valign="top" style="padding-bottom:16px;">
+                        <p style="margin:0 0 3px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;mso-line-height-rule:exactly;color:#1c1518;font-weight:bold;">Завантажте світлини</p>
+                        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:21px;mso-line-height-rule:exactly;color:#6e6259;">До взаємної симпатії їх не побачить ніхто — це головне правило сервісу.</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td valign="top" width="34" style="width:34px;padding-bottom:20px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="24" height="24" align="center" valign="middle" bgcolor="#fdeef4" style="width:24px;height:24px;background-color:#fdeef4;border-radius:12px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:24px;mso-line-height-rule:exactly;color:#8f2249;font-weight:bold;">3</td></tr></table>
+                      </td>
+                      <td valign="top" style="padding-bottom:20px;">
+                        <p style="margin:0 0 3px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;mso-line-height-rule:exactly;color:#1c1518;font-weight:bold;">Читайте стрічку</p>
+                        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:21px;mso-line-height-rule:exactly;color:#6e6259;">Анкети приходять по одній, відсортовані за спільними темами.</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- безпека -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+              <tr>
+                <td class="z-pad" style="padding:0 40px 34px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+                    <tr>
+                      <td bgcolor="#faf6f3" style="background-color:#faf6f3;border:1px solid #eee5df;border-radius:13px;padding:16px 18px;">
+                        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:20px;mso-line-height-rule:exactly;color:#6e6259;"><strong style="color:#1c1518;">Не ви реєструвались?</strong> Просто проігноруйте цей лист — без коду акаунт не буде створено. Ніколи не повідомляйте код іншим: співробітники znaidy його не запитують.</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+          </td>
+        </tr>
+
+      </table>
+
+    </td>
+  </tr>
+</table>
+</body>
+</html>

@@ -33,8 +33,23 @@ public class AdminInitializer implements CommandLineRunner {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Пароль адміна не має значення за замовчуванням: у репозиторії лежав робочий
+     * admin12345, тобто адмінка будь-якого розгортання відкривалася відомим паролем.
+     *
+     * Якщо пароль не задано — адмін просто НЕ створюється. Створити його зі
+     * слабким чи порожнім паролем було б гірше за відсутність адміна: застосунок
+     * працює й без нього, недоступна лише модерація.
+     */
     @Override
     public void run(String... args) {
+        if (adminPassword == null || adminPassword.isBlank() || adminPassword.startsWith("${")) {
+            logger.warn("Адміністратора не створено: не задано admin.password. "
+                    + "Задайте ADMIN_PASSWORD у змінних оточення або admin.password "
+                    + "в application-local.properties (профіль local).");
+            return;
+        }
+
         if (userRepository.findByEmail(adminEmail).isPresent()) {
             return;
         }

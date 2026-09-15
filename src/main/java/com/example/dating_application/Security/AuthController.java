@@ -1,6 +1,8 @@
 package com.example.dating_application.Security;
 
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.example.dating_application.Exception.BusinessException;
 import com.example.dating_application.Entity.User;
 import com.example.dating_application.Entity.VerificationCode;
@@ -37,6 +39,8 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
@@ -55,6 +59,10 @@ public class AuthController {
     private int verifyMaxPerEmail;
     @Value("${app.ratelimit.verify.max-per-ip:20}")
     private int verifyMaxPerIp;
+    @Value("${app.ratelimit.register.max-per-email:3}")
+    private int registerMaxPerEmail;
+    @Value("${app.ratelimit.register.max-per-ip:10}")
+    private int registerMaxPerIp;
 
     public AuthController(JwtUtil jwtUtil, AuthenticationManager authenticationManager,
                          UserRepository userRepository, VerificationCodeRepository verificationCodeRepository,
@@ -85,6 +93,14 @@ public class AuthController {
         return ip == null ? "unknown" : ip;
     }
 
+    /** t***@example.com — лог не має бути готовою базою адрес. */
+    private static String mask(String email) {
+        if (email == null || email.indexOf('@') <= 1) {
+            return "***";
+        }
+        return email.charAt(0) + "***" + email.substring(email.indexOf('@'));
+    }
+
     private String emailKey(String action, String email) {
         return action + ":email:" + (email == null ? "" : email.trim().toLowerCase());
     }
@@ -111,12 +127,28 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> register(
-            @Valid @RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<Map<String, Object>> register(
+            @Valid @RequestBody RegisterRequest registerRequest, HttpServletRequest request) {
+
+        // Кожен успішний register шле лист із НАШОГО ящика на ЧУЖУ адресу.
+        // Без ліміту ендпоінт — відкритий спам-релей: кілька тисяч запитів,
+        // і поштовий акаунт блокують за розсилку. Тому тут, на відміну від
+        // /login і /verify, рахуються всі спроби, а не лише невдалі.
+        String eKey = emailKey("register", registerRequest.getEmail());
+        String iKey = ipKey("register", request);
+        if (rateLimitService.isLimited(eKey, registerMaxPerEmail)) {
+            return tooManyAttempts(eKey);
+        }
+        if (rateLimitService.isLimited(iKey, registerMaxPerIp)) {
+            return tooManyAttempts(iKey);
+        }
 
         try {
             Optional<User> existingUser = userRepository.findByEmail(registerRequest.getEmail());
             if (existingUser.isPresent()) {
+                // Листа не було, але запит дешевий і придатний для перебору адрес —
+                // тримаємо лічильник IP, щоб гілка не стала безкоштовним оракулом.
+                rateLimitService.recordAttempt(iKey);
                 return ResponseEntity.status(400)
                         .body(Map.of(
                                 "message", "Email already registered",
@@ -125,7 +157,6 @@ public class AuthController {
             }
 
             String verificationCode = emailService.generateVerificationCode();
-            emailService.sendVerificationEmail(registerRequest.getEmail(), verificationCode);
 
             VerificationCode verification = new VerificationCode();
             verification.setEmail(registerRequest.getEmail());
@@ -139,16 +170,32 @@ public class AuthController {
             verificationCodeRepository.deleteByEmail(registerRequest.getEmail());
             verificationCodeRepository.save(verification);
 
+            // Лист — лише після успішного збереження, інакше можна надіслати код,
+            // якого немає в БД, і /verify його не прийме. Виклик асинхронний:
+            // відповідь не чекає на SMTP, а збій відправки не валить реєстрацію.
+            emailService.sendVerificationEmail(registerRequest.getEmail(), verificationCode);
+
+            rateLimitService.recordAttempt(eKey);
+            rateLimitService.recordAttempt(iKey);
+
             return ResponseEntity.status(200)
                     .body(Map.of(
                             "message", "Verification code sent to email",
                             "date", new Date().toString()
                     ));
 
+        } catch (BusinessException e) {
+            // Порушення бізнес-правила написане для людини — його текст іде клієнту
+            // (400 сформує GlobalExceptionHandler).
+            throw e;
         } catch (Exception e) {
+            // Несподіваний збій: подробиці — у лог, клієнту — нейтральний текст.
+            // Інакше назовні їхала б внутрішня діагностика: назви таблиць, обмежень,
+            // класів. Те саме правило тримає GlobalExceptionHandler для 500.
+            logger.error("Реєстрація не вдалася для {}", mask(registerRequest.getEmail()), e);
             return ResponseEntity.status(400)
                     .body(Map.of(
-                            "message", "Error in registration: " + e.getMessage(),
+                            "message", "Registration failed. Please try again later",
                             "date", new Date().toString()
                     ));
         }
@@ -233,10 +280,13 @@ public class AuthController {
                             "date", new Date().toString()
                     ));
 
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
+            logger.error("Підтвердження пошти не вдалося для {}", mask(verifyRequest.getEmail()), e);
             return ResponseEntity.status(400)
                     .body(Map.of(
-                            "message", "Error in verification: " + e.getMessage(),
+                            "message", "Verification failed. Please try again later",
                             "date", new Date().toString()
                     ));
         }
@@ -306,6 +356,7 @@ public class AuthController {
             ));
 
         } catch (Exception e)  {
+            logger.error("Вхід не вдався для {}", mask(loginRequest.getEmail()), e);
             return ResponseEntity.status(400)
                     .body(Map.of(
                             "message", "Error in login",
@@ -367,6 +418,8 @@ public class AuthController {
         } catch (Exception e) {
             // Токен пройшов перевірку підпису, але щось пішло не так при розборі.
             // Клієнту однаково 200: він викидає токен і вважає себе розлогіненим.
+            // А от у лозі слід лишаємо: мовчазне ковтання ховає проблему назавжди.
+            logger.warn("Не вдалося завершити вихід за токеном", e);
         }
 
         return ResponseEntity.status(200)

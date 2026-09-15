@@ -46,13 +46,23 @@ public class RateLimitService {
         return w.count() >= maxAttempts;
     }
 
-    /** Фіксує невдалу спробу. compute — щоб паралельні запити не загубили інкремент. */
-    public void recordFailure(String key) {
+    /**
+     * Фіксує спробу. compute — щоб паралельні запити не загубили інкремент.
+     *
+     * Для /register рахуються ВСІ спроби, а не лише невдачі: там кожен успішний
+     * запит шле лист, тож дорогою є саме вдала операція.
+     */
+    public void recordAttempt(String key) {
         Instant now = Instant.now();
         windows.compute(key, (k, w) ->
                 (w == null || now.isAfter(w.expiresAt()))
                         ? new Window(1, now.plus(window))
                         : new Window(w.count() + 1, w.expiresAt()));
+    }
+
+    /** Невдала спроба входу/підтвердження — той самий лічильник. */
+    public void recordFailure(String key) {
+        recordAttempt(key);
     }
 
     /** Успіх — лічильник акаунта обнуляється. */

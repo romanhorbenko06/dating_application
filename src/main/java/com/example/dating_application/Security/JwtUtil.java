@@ -26,9 +26,40 @@ public class JwtUtil {
 
     private SecretKey key;
 
+    /** HS256 вимагає щонайменше 256 біт ключа. */
+    private static final int MIN_KEY_BYTES = 32;
+
+    /**
+     * Ключ підпису свідомо не має значення за замовчуванням: раніше в репозиторії
+     * лежав робочий дефолт, а це означає, що будь-хто з доступом до коду міг
+     * підписати токен від імені будь-якого користувача, включно з адміном.
+     *
+     * Тому — падаємо на старті з поясненням, а не мовчки працюємо з відомим ключем.
+     */
     @PostConstruct
     public void init() {
-        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+        if (secret == null || secret.isBlank() || secret.startsWith("${")) {
+            throw new IllegalStateException(
+                    "Не задано jwt.secret. Згенеруйте ключ:  openssl rand -base64 32  "
+                            + "і покладіть його у змінну оточення JWT_SECRET або в "
+                            + "src/main/resources/application-local.properties (профіль local).");
+        }
+
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(secret);
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "jwt.secret має бути у Base64. Згенеруйте: openssl rand -base64 32", e);
+        }
+
+        if (keyBytes.length < MIN_KEY_BYTES) {
+            throw new IllegalStateException(
+                    "jwt.secret закороткий: " + keyBytes.length + " байт, потрібно щонайменше "
+                            + MIN_KEY_BYTES + ". Згенеруйте: openssl rand -base64 32");
+        }
+
+        this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateToken(User user) {

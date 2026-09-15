@@ -3,6 +3,7 @@ package com.example.dating_application.Security;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -32,6 +33,10 @@ public class CustomWebSecurity {
 
     private SecurityFilterChain configureHttpSecurity(HttpSecurity http) throws Exception {
         http
+                // Вмикає CorsFilter у ланцюзі — ДО перевірки автентифікації.
+                // Саме тому preflight OPTIONS (він іде без Authorization) більше
+                // не отримує 401. Налаштування бере з біна CorsConfigurationSource.
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm ->
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

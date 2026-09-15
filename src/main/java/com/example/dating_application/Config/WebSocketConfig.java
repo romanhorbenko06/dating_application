@@ -5,12 +5,15 @@ import com.example.dating_application.Websocket.ChatWebSocketHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSocket
@@ -28,22 +31,37 @@ public class WebSocketConfig implements WebSocketConfigurer {
         ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();
         container.setMaxTextMessageBufferSize(16 * 1024);
         container.setMaxBinaryMessageBufferSize(16 * 1024);
+        // Страхувальна сітка контейнера. Основний механізм — ping/pong кожні 25 с
+        // у ChatWebSocketHandler; живу сесію цей таймаут не чіпає, бо кожен pong
+        // від клієнта оновлює час активності. Спрацює лише там, де наш reaper
+        // чомусь не дійшов до сесії.
+        container.setMaxSessionIdleTimeout(120_000L);
         return container;
     }
 
     private final ChatWebSocketHandler chatWebSocketHandler;
     private final JwtHandshakeInterceptor jwtHandshakeInterceptor;
 
+    /**
+     * Той самий список, що й для HTTP (app.cors.allowed-origins) — щоб не було
+     * місця, де дозволено більше. Рукостискання WebSocket іде повз CorsFilter,
+     * тому налаштовується окремо, але з того ж джерела.
+     */
+    private final List<String> allowedOrigins;
+
     public WebSocketConfig(ChatWebSocketHandler chatWebSocketHandler,
-                           JwtHandshakeInterceptor jwtHandshakeInterceptor) {
+                           JwtHandshakeInterceptor jwtHandshakeInterceptor,
+                           @Value("${app.cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200}")
+                           List<String> allowedOrigins) {
         this.chatWebSocketHandler = chatWebSocketHandler;
         this.jwtHandshakeInterceptor = jwtHandshakeInterceptor;
+        this.allowedOrigins = allowedOrigins;
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(chatWebSocketHandler, "/ws/chat")
                 .addInterceptors(jwtHandshakeInterceptor)
-                .setAllowedOriginPatterns("*");
+                .setAllowedOriginPatterns(allowedOrigins.toArray(String[]::new));
     }
 }

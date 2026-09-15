@@ -1,8 +1,10 @@
 package com.example.dating_application.DTO.Response;
 
+import java.time.LocalDate;
+
 /**
- * Безпечне представлення чату — лише публічні дані учасників (id + ім'я),
- * без email/ролі/статусу верифікації.
+ * Безпечне представлення чату — лише публічні дані учасників (id, ім'я,
+ * дата народження, місто), без email/ролі/статусу верифікації.
  */
 public class ChatResponseDTO {
     private Long chatId;
@@ -10,17 +12,35 @@ public class ChatResponseDTO {
     private String user1Name;
     private Long user2Id;
     private String user2Name;
+    /**
+     * Вік і місто обох учасників — щоб список збігів не добирав анкету
+     * на кожен рядок. Хто з них «співрозмовник», клієнт визначає сам.
+     */
+    private LocalDate user1DateOfBirth;
+    private String user1City;
+    private LocalDate user2DateOfBirth;
+    private String user2City;
+    /** Скільки тем збігається в учасників чату. Величина симетрична. */
+    private long sharedTagCount;
 
     public ChatResponseDTO() {
     }
 
     public ChatResponseDTO(Long chatId, Long user1Id, String user1Name,
-                           Long user2Id, String user2Name) {
+                           Long user2Id, String user2Name,
+                           LocalDate user1DateOfBirth, String user1City,
+                           LocalDate user2DateOfBirth, String user2City,
+                           long sharedTagCount) {
         this.chatId = chatId;
         this.user1Id = user1Id;
         this.user1Name = user1Name;
         this.user2Id = user2Id;
         this.user2Name = user2Name;
+        this.user1DateOfBirth = user1DateOfBirth;
+        this.user1City = user1City;
+        this.user2DateOfBirth = user2DateOfBirth;
+        this.user2City = user2City;
+        this.sharedTagCount = sharedTagCount;
     }
 
     public Long getChatId() {
@@ -61,5 +81,45 @@ public class ChatResponseDTO {
 
     public void setUser2Name(String user2Name) {
         this.user2Name = user2Name;
+    }
+
+    public LocalDate getUser1DateOfBirth() {
+        return user1DateOfBirth;
+    }
+
+    public void setUser1DateOfBirth(LocalDate user1DateOfBirth) {
+        this.user1DateOfBirth = user1DateOfBirth;
+    }
+
+    public String getUser1City() {
+        return user1City;
+    }
+
+    public void setUser1City(String user1City) {
+        this.user1City = user1City;
+    }
+
+    public LocalDate getUser2DateOfBirth() {
+        return user2DateOfBirth;
+    }
+
+    public void setUser2DateOfBirth(LocalDate user2DateOfBirth) {
+        this.user2DateOfBirth = user2DateOfBirth;
+    }
+
+    public String getUser2City() {
+        return user2City;
+    }
+
+    public void setUser2City(String user2City) {
+        this.user2City = user2City;
+    }
+
+    public long getSharedTagCount() {
+        return sharedTagCount;
+    }
+
+    public void setSharedTagCount(long sharedTagCount) {
+        this.sharedTagCount = sharedTagCount;
     }
 }

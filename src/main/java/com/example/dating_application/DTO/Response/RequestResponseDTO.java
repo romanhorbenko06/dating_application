@@ -1,6 +1,7 @@
 package com.example.dating_application.DTO.Response;
 
 import com.example.dating_application.Entity.RequestStatus;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class    RequestResponseDTO {
@@ -12,13 +13,28 @@ public class    RequestResponseDTO {
     private String message;
     private RequestStatus status;
     private LocalDateTime createdAt;
+    /**
+     * Подробиці про ВІДПРАВНИКА симпатії. Потрібні списку «вас вподобали»:
+     * без них клієнт мусив би тягнути окрему анкету на кожен рядок.
+     */
+    private LocalDate fromUserDateOfBirth;
+    private String fromUserCity;
+    /** Скільки фото має відправник. Самі фото до взаємності лишаються закритими. */
+    private long fromUserPhotoCount;
+    /**
+     * Скільки тем збігається у відправника й отримувача. Величина симетрична,
+     * тож однаково правдива і для вхідних симпатій, і для надісланих.
+     */
+    private long sharedTagCount;
 
     public RequestResponseDTO() {
     }
 
     public RequestResponseDTO(Long requestId, Long fromUserId, String fromUserName,
                              Long toUserId, String toUserName, String message,
-                             RequestStatus status, LocalDateTime createdAt) {
+                             RequestStatus status, LocalDateTime createdAt,
+                             LocalDate fromUserDateOfBirth, String fromUserCity,
+                             long fromUserPhotoCount, long sharedTagCount) {
         this.requestId = requestId;
         this.fromUserId = fromUserId;
         this.fromUserName = fromUserName;
@@ -27,6 +43,10 @@ public class    RequestResponseDTO {
         this.message = message;
         this.status = status;
         this.createdAt = createdAt;
+        this.fromUserDateOfBirth = fromUserDateOfBirth;
+        this.fromUserCity = fromUserCity;
+        this.fromUserPhotoCount = fromUserPhotoCount;
+        this.sharedTagCount = sharedTagCount;
     }
 
     public Long getRequestId() {
@@ -91,5 +111,37 @@ public class    RequestResponseDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDate getFromUserDateOfBirth() {
+        return fromUserDateOfBirth;
+    }
+
+    public void setFromUserDateOfBirth(LocalDate fromUserDateOfBirth) {
+        this.fromUserDateOfBirth = fromUserDateOfBirth;
+    }
+
+    public String getFromUserCity() {
+        return fromUserCity;
+    }
+
+    public void setFromUserCity(String fromUserCity) {
+        this.fromUserCity = fromUserCity;
+    }
+
+    public long getFromUserPhotoCount() {
+        return fromUserPhotoCount;
+    }
+
+    public void setFromUserPhotoCount(long fromUserPhotoCount) {
+        this.fromUserPhotoCount = fromUserPhotoCount;
+    }
+
+    public long getSharedTagCount() {
+        return sharedTagCount;
+    }
+
+    public void setSharedTagCount(long sharedTagCount) {
+        this.sharedTagCount = sharedTagCount;
     }
 }

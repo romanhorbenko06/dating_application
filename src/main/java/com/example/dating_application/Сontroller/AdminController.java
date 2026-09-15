@@ -1,6 +1,9 @@
 package com.example.dating_application.Сontroller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import org.springframework.validation.annotation.Validated;
 import com.example.dating_application.DTO.Request.AdminBlockRequestDTO;
 import com.example.dating_application.DTO.Response.BlockedUserDTO;
 import com.example.dating_application.DTO.Response.ComplaintResponseDTO;
@@ -17,11 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@CrossOrigin
 @RestController
 @RequestMapping("/api/admin")
+@Validated
 @PreAuthorize("@accessControlService.isCurrentUserAdmin()")
 public class AdminController {
+
+    /** Сторінка за замовчуванням. Раніше черга скарг віддавалась цілком. */
+    private static final int DEFAULT_PAGE_SIZE = 50;
 
     private final ComplaintService complaintService;
     private final UserService userService;
@@ -36,16 +42,27 @@ public class AdminController {
 
     @GetMapping("/complaints")
     public ResponseEntity<List<ComplaintResponseDTO>> getComplaints(
-            @RequestParam(required = false) ComplaintStatus status) {
-        List<ComplaintResponseDTO> complaints = complaintService.getComplaints(status).stream()
+            @RequestParam(required = false) ComplaintStatus status,
+            @RequestParam(required = false, defaultValue = "0")
+            @Min(value = 0, message = "page must not be negative") int page,
+            @RequestParam(required = false, defaultValue = "" + DEFAULT_PAGE_SIZE)
+            @Min(value = 1, message = "size must be at least 1")
+            @Max(value = 100, message = "size must not exceed 100") int size) {
+        List<ComplaintResponseDTO> complaints = complaintService.getComplaints(status, page, size).stream()
                 .map(complaintService::toResponseDTO)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(complaints);
     }
 
     @GetMapping("/complaints/user/{userId}")
-    public ResponseEntity<List<ComplaintResponseDTO>> getComplaintsAboutUser(@PathVariable Long userId) {
-        List<ComplaintResponseDTO> complaints = complaintService.getByReportedUser(userId).stream()
+    public ResponseEntity<List<ComplaintResponseDTO>> getComplaintsAboutUser(
+            @PathVariable Long userId,
+            @RequestParam(required = false, defaultValue = "0")
+            @Min(value = 0, message = "page must not be negative") int page,
+            @RequestParam(required = false, defaultValue = "" + DEFAULT_PAGE_SIZE)
+            @Min(value = 1, message = "size must be at least 1")
+            @Max(value = 100, message = "size must not exceed 100") int size) {
+        List<ComplaintResponseDTO> complaints = complaintService.getByReportedUser(userId, page, size).stream()
                 .map(complaintService::toResponseDTO)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(complaints);
@@ -79,8 +96,14 @@ public class AdminController {
     }
 
     @GetMapping("/users/blocked")
-    public ResponseEntity<List<BlockedUserDTO>> getBlockedUsers() {
-        List<BlockedUserDTO> blocked = userService.getBlockedUsers().stream()
+    public ResponseEntity<List<BlockedUserDTO>> getBlockedUsers(
+            @RequestParam(required = false, defaultValue = "0")
+            @Min(value = 0, message = "page must not be negative") int page,
+            @RequestParam(required = false, defaultValue = "" + DEFAULT_PAGE_SIZE)
+            @Min(value = 1, message = "size must be at least 1")
+            @Max(value = 100, message = "size must not exceed 100") int size) {
+
+        List<BlockedUserDTO> blocked = userService.getBlockedUsers(page, size).stream()
                 .map(userService::toBlockedUserDTO)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(blocked);

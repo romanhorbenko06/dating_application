@@ -1,6 +1,8 @@
 package com.example.dating_application.Сontroller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import com.example.dating_application.Exception.BusinessException;
 import com.example.dating_application.DTO.Request.SendRequestDTO;
 import com.example.dating_application.DTO.Response.RequestResponseDTO;
@@ -11,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,10 +21,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@CrossOrigin
 @RestController
 @RequestMapping("/api/requests")
+@Validated
 public class RequestController {
+
+    /** Сторінка за замовчуванням. Раніше списки віддавались цілком. */
+    private static final int DEFAULT_PAGE_SIZE = 50;
 
     private final RequestService requestService;
     private final NotificationService notificationService;
@@ -43,12 +49,19 @@ public class RequestController {
     @PostMapping("/send")
     public ResponseEntity<RequestResponseDTO> sendLike(@Valid @RequestBody SendRequestDTO dto) {
         Long currentUserId = getCurrentUserId();
-        var request = requestService.send(currentUserId, dto);
+        var result = requestService.send(currentUserId, dto);
 
-        // Сповіщення адресату (FR-19.2) — після збереження лайку
-        notificationService.notifyNewLike(request.getToUser(), request.getFromUser());
+        if (result.chat() != null) {
+            // Лайк був зустрічним і став метчем — обом іде сповіщення про взаємність
+            // (UC-08), а не про нову вхідну симпатію.
+            notificationService.notifyNewMatch(result.chat());
+        } else {
+            // Сповіщення адресату (FR-19.2) — після збереження лайку
+            notificationService.notifyNewLike(result.request().getToUser(),
+                    result.request().getFromUser());
+        }
 
-        return ResponseEntity.ok(requestService.toResponseDTO(request));
+        return ResponseEntity.ok(requestService.toResponseDTO(result.request()));
     }
 
     @PostMapping("/{requestId}/accept")
@@ -76,10 +89,26 @@ public class RequestController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/incoming")
-    public ResponseEntity<List<RequestResponseDTO>> getIncomingLikes() {
+    /**
+     * Лічильник для анкети: скільки людей вподобали цього користувача за весь час.
+     * Окремий ендпоінт, а не довжина списку, бо список посторінковий — рахувати
+     * за ним означало б або занижувати, або тягнути всі записи заради числа.
+     */
+    @GetMapping("/incoming/count")
+    public ResponseEntity<Map<String, Long>> countIncomingLikes() {
         Long currentUserId = getCurrentUserId();
-        var requests = requestService.incoming(currentUserId);
+        return ResponseEntity.ok(Map.of("count", requestService.countIncomingLikes(currentUserId)));
+    }
+
+    @GetMapping("/incoming")
+    public ResponseEntity<List<RequestResponseDTO>> getIncomingLikes(
+            @RequestParam(required = false, defaultValue = "0")
+            @Min(value = 0, message = "page must not be negative") int page,
+            @RequestParam(required = false, defaultValue = "" + DEFAULT_PAGE_SIZE)
+            @Min(value = 1, message = "size must be at least 1")
+            @Max(value = 100, message = "size must not exceed 100") int size) {
+        Long currentUserId = getCurrentUserId();
+        var requests = requestService.incoming(currentUserId, page, size);
         List<RequestResponseDTO> dtos = requests.stream()
                 .map(requestService::toResponseDTO)
                 .collect(Collectors.toList());
@@ -87,9 +116,14 @@ public class RequestController {
     }
 
     @GetMapping("/sent")
-    public ResponseEntity<List<RequestResponseDTO>> getSentLikes() {
+    public ResponseEntity<List<RequestResponseDTO>> getSentLikes(
+            @RequestParam(required = false, defaultValue = "0")
+            @Min(value = 0, message = "page must not be negative") int page,
+            @RequestParam(required = false, defaultValue = "" + DEFAULT_PAGE_SIZE)
+            @Min(value = 1, message = "size must be at least 1")
+            @Max(value = 100, message = "size must not exceed 100") int size) {
         Long currentUserId = getCurrentUserId();
-        var requests = requestService.sent(currentUserId);
+        var requests = requestService.sent(currentUserId, page, size);
         List<RequestResponseDTO> dtos = requests.stream()
                 .map(requestService::toResponseDTO)
                 .collect(Collectors.toList());
@@ -106,9 +140,14 @@ public class RequestController {
     }
 
     @GetMapping("/skipped")
-    public ResponseEntity<List<Map<String, Object>>> getSkippedProfiles() {
+    public ResponseEntity<List<Map<String, Object>>> getSkippedProfiles(
+            @RequestParam(required = false, defaultValue = "0")
+            @Min(value = 0, message = "page must not be negative") int page,
+            @RequestParam(required = false, defaultValue = "" + DEFAULT_PAGE_SIZE)
+            @Min(value = 1, message = "size must be at least 1")
+            @Max(value = 100, message = "size must not exceed 100") int size) {
         Long currentUserId = getCurrentUserId();
-        var requests = requestService.getSkipped(currentUserId);
+        var requests = requestService.getSkipped(currentUserId, page, size);
         List<Map<String, Object>> skipped = requests.stream()
                 .map(r -> {
                     Map<String, Object> m = new HashMap<>();

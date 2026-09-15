@@ -7,6 +7,7 @@ import com.example.dating_application.Entity.ComplaintStatus;
 import com.example.dating_application.Entity.Role;
 import com.example.dating_application.Repo.ComplaintRepository;
 import com.example.dating_application.Repo.UserRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -54,10 +55,11 @@ public class ComplaintService {
         return complaintRepository.save(c);
     }
 
-    public List<Complaint> getComplaints(ComplaintStatus status) {
+    public List<Complaint> getComplaints(ComplaintStatus status, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size);
         return status == null
-                ? complaintRepository.findAllByOrderByCreatedAtDesc()
-                : complaintRepository.findByStatusOrderByCreatedAtDesc(status);
+                ? complaintRepository.findAllByOrderByCreatedAtDescComplainIdDesc(pageable)
+                : complaintRepository.findByStatusOrderByCreatedAtDescComplainIdDesc(status, pageable);
     }
 
     public Complaint markReviewed(Long complaintId) {
@@ -91,8 +93,9 @@ public class ComplaintService {
         return complaintRepository.save(c);
     }
 
-    public List<Complaint> getByReportedUser(Long userId) {
-        return complaintRepository.findByReportedUserUserIdOrderByCreatedAtDesc(userId);
+    public List<Complaint> getByReportedUser(Long userId, int page, int size) {
+        return complaintRepository.findByReportedUserUserIdOrderByCreatedAtDescComplainIdDesc(
+                userId, PageRequest.of(page, size));
     }
 
     public ComplaintResponseDTO toResponseDTO(Complaint c) {

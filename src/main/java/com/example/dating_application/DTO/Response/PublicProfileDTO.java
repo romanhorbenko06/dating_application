@@ -20,6 +20,8 @@ public class PublicProfileDTO {
     private EducationLevel educationLevel;
     private Temperament temperament;
     private ChildrenStatus childrenStatus;
+    /** Скільки фото має користувач. Саму кількість видно й до взаємної симпатії — контент ні. */
+    private long photoCount;
 
     public PublicProfileDTO() {
     }
@@ -28,7 +30,7 @@ public class PublicProfileDTO {
                             LocalDate dateOfBirth, String characterisation,
                             String city, DatingGoal datingGoal,
                             EducationLevel educationLevel, Temperament temperament,
-                            ChildrenStatus childrenStatus) {
+                            ChildrenStatus childrenStatus, long photoCount) {
         this.userId = userId;
         this.name = name;
         this.gender = gender;
@@ -39,6 +41,7 @@ public class PublicProfileDTO {
         this.educationLevel = educationLevel;
         this.temperament = temperament;
         this.childrenStatus = childrenStatus;
+        this.photoCount = photoCount;
     }
 
     public Long getUserId() {
@@ -119,5 +122,13 @@ public class PublicProfileDTO {
 
     public void setChildrenStatus(ChildrenStatus childrenStatus) {
         this.childrenStatus = childrenStatus;
+    }
+
+    public long getPhotoCount() {
+        return photoCount;
+    }
+
+    public void setPhotoCount(long photoCount) {
+        this.photoCount = photoCount;
     }
 }

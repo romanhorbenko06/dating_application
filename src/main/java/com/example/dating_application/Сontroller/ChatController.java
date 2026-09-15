@@ -26,11 +26,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@CrossOrigin
 @RestController
 @RequestMapping("/api/chats")
 @Validated
 public class ChatController {
+
+    /** Стільки чатів віддається за замовчуванням, якщо клієнт не просив інакше. */
+    private static final int DEFAULT_PAGE_SIZE = 50;
 
     private static final int DEFAULT_MESSAGE_LIMIT = 50;
 
@@ -59,9 +61,15 @@ public class ChatController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ChatResponseDTO>> getUserChats() {
+    public ResponseEntity<List<ChatResponseDTO>> getUserChats(
+            @RequestParam(required = false, defaultValue = "0")
+            @Min(value = 0, message = "page must not be negative") int page,
+            @RequestParam(required = false, defaultValue = "" + DEFAULT_PAGE_SIZE)
+            @Min(value = 1, message = "size must be at least 1")
+            @Max(value = 100, message = "size must not exceed 100") int size) {
+
         Long currentUserId = getCurrentUserId();
-        List<ChatResponseDTO> chats = chatService.getUserChats(currentUserId).stream()
+        List<ChatResponseDTO> chats = chatService.getUserChats(currentUserId, page, size).stream()
                 .map(chatService::toResponseDTO)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(chats);

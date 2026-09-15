@@ -22,10 +22,17 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * - лише звичайні користувачі (DATER), адміністратори у стрічку не потрапляють
      * - виключені забанені адміністратором акаунти (isBlocked = TRUE)
      * - виключені всі, з ким є блок у БУДЬ-ЯКОМУ напрямку (я заблокував / мене заблокували)
-     * - виключені всі, кому він уже надсилав будь-який запит (лайк/пропуск/тощо)
+     * - виключені всі, з ким уже була взаємодія (див. нижче про обидва напрямки)
      * - опційні фільтри статі, міста, цілі та діапазону дати народження (null/false = без фільтра)
      * Ранжування: спершу за кількістю СПІЛЬНИХ тегів (інтересів) з поточним користувачем
      * (найрелевантніші — першими), далі за user_id.
+     *
+     * Зі стрічки випадають обидва напрямки взаємодії, а не лише мої власні лайки:
+     * інакше людина, чию симпатію я щойно ПРИЙНЯВ, поверталася б у стрічку —
+     * рядок Request належить їй, а не мені. Так само ховаємо тих, чий лайк я
+     * відхилив, і тих, хто лайкнув мене й чекає відповіді в «Симпатіях».
+     * Виняток один: їхній SKIPPED. Те, що людина мене пропустила, — її приватна
+     * справа й не має викреслювати її з МОЄЇ стрічки.
      * Виклик з Pageable(0, 1) повертає лише один профіль (LIMIT 1).
      */
     @Query("""
@@ -33,8 +40,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
             WHERE u.userId <> :meId
               AND u.role = com.example.dating_application.Entity.Role.DATER
               AND u.isBlocked = FALSE
-              AND u.userId NOT IN (
-                  SELECT r.toUser.userId FROM Request r WHERE r.fromUser.userId = :meId
+              AND NOT EXISTS (
+                  SELECT r FROM Request r
+                  WHERE (r.fromUser.userId = :meId AND r.toUser.userId = u.userId)
+                     OR (r.fromUser.userId = u.userId AND r.toUser.userId = :meId
+                         AND r.status <> com.example.dating_application.Entity.RequestStatus.SKIPPED)
               )
               AND NOT EXISTS (
                   SELECT b FROM Block b
@@ -66,6 +76,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
                                   @Param("bornAfter") LocalDate bornAfter,
                                   Pageable pageable);
 
-    List<User> findByIsBlockedTrueOrderByBlockedAtDesc();
+    /**
+     * Забанені, найсвіжіші зверху, сторінкою. Порядок задає сам метод, тож
+     * Pageable потрібен лише для меж — сортування в нього не передаємо.
+     */
+    List<User> findByIsBlockedTrueOrderByBlockedAtDesc(Pageable pageable);
 }
 

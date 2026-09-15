@@ -2,6 +2,7 @@ package com.example.dating_application.Service;
 
 import com.example.dating_application.Exception.BusinessException;
 import com.example.dating_application.DTO.Request.UserUpdateDTO;
+import com.example.dating_application.DTO.Request.UserPatchDTO;
 import com.example.dating_application.DTO.Response.BlockedUserDTO;
 import com.example.dating_application.DTO.Response.PublicProfileDTO;
 import com.example.dating_application.DTO.Response.UserResponseDTO;
@@ -17,6 +18,7 @@ import com.example.dating_application.Repo.NotificationRepository;
 import com.example.dating_application.Repo.RequestRepository;
 import com.example.dating_application.Repo.PhotoRepository;
 import com.example.dating_application.Repo.UserRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -104,6 +106,76 @@ public class UserService {
         return userRepository.save(u);
     }
 
+    /**
+     * Часткове оновлення (PATCH): чого немає в тілі — те лишається як було.
+     *
+     * PUT-варіант вище затирає все, чого немає в тілі, — на фронті це стріляє
+     * першим: форма редагування, що шле лише змінені поля, обнуляє решту анкети.
+     * Тут такого немає, тому клієнту не треба щоразу надсилати весь профіль.
+     *
+     * Орієнтир — не значення поля, а сама ПРИСУТНІСТЬ ключа в JSON (див.
+     * {@link UserPatchDTO}). Тому явний {@code null} очищає необов'язкове поле,
+     * а не мовчки ігнорується: «не вказано» (null) і «волію не вказувати»
+     * (PREFER_NOT_TO_SAY) — різні відповіді, і клієнт має право на обидві.
+     * Обов'язкові поля (ім'я, стать, дата народження, мета) очистити не можна:
+     * явний null для них — помилка клієнта, а не спосіб щось прибрати.
+     */
+    @Transactional
+    public User patchProfile(Long userId, UserPatchDTO dto) {
+        User u = getById(userId);
+
+        if (dto.hasName()) {
+            // @Size(min=2) пропускає "  " — довжина є, змісту немає.
+            String name = dto.getName() == null ? "" : dto.getName().trim();
+            if (name.isEmpty()) {
+                throw new BusinessException("Name must not be blank");
+            }
+            u.setName(name);
+        }
+        if (dto.hasGender()) {
+            u.setGender(required(dto.getGender(), "Gender"));
+        }
+        if (dto.hasDateOfBirth()) {
+            u.setDateOfBirth(required(dto.getDateOfBirth(), "Date of birth"));
+        }
+        if (dto.hasCharacterisation()) {
+            u.setCharacterisation(blankToNull(dto.getCharacterisation()));
+        }
+        if (dto.hasCity()) {
+            u.setCity(blankToNull(dto.getCity()));
+        }
+        if (dto.hasDatingGoal()) {
+            u.setDatingGoal(required(dto.getDatingGoal(), "Dating goal"));
+        }
+        if (dto.hasEducationLevel()) {
+            u.setEducationLevel(dto.getEducationLevel());
+        }
+        if (dto.hasTemperament()) {
+            u.setTemperament(dto.getTemperament());
+        }
+        if (dto.hasChildrenStatus()) {
+            u.setChildrenStatus(dto.getChildrenStatus());
+        }
+
+        return userRepository.save(u);
+    }
+
+    /** Порожній рядок і пробіли зводимо до null: у БД «не заповнено» має виглядати однаково. */
+    private static String blankToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static <T> T required(T value, String field) {
+        if (value == null) {
+            throw new BusinessException(field + " must not be null");
+        }
+        return value;
+    }
+
     @Transactional
     public User blockUserPermanently(Long userId, String reason) {
         User u = getById(userId);
@@ -122,8 +194,8 @@ public class UserService {
         return userRepository.save(u);
     }
 
-    public List<User> getBlockedUsers() {
-        return userRepository.findByIsBlockedTrueOrderByBlockedAtDesc();
+    public List<User> getBlockedUsers(int page, int size) {
+        return userRepository.findByIsBlockedTrueOrderByBlockedAtDesc(PageRequest.of(page, size));
     }
 
     @Transactional
@@ -209,7 +281,8 @@ public class UserService {
                 user.getDatingGoal(),
                 user.getEducationLevel(),
                 user.getTemperament(),
-                user.getChildrenStatus()
+                user.getChildrenStatus(),
+                photoRepository.countByUserUserId(user.getUserId())
         );
     }
 }

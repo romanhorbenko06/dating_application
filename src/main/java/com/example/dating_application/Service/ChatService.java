@@ -3,29 +3,29 @@ package com.example.dating_application.Service;
 import com.example.dating_application.DTO.Response.ChatResponseDTO;
 import com.example.dating_application.Entity.Chat;
 import com.example.dating_application.Entity.User;
-import com.example.dating_application.Repo.BlockRepository;
 import com.example.dating_application.Repo.ChatRepository;
 import com.example.dating_application.Repo.UserRepository;
+import com.example.dating_application.Repo.UserTagsRepository;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
 
     private final ChatRepository chatRepository;
     private final UserRepository userRepository;
-    private final BlockRepository blockRepository;
+    private final UserTagsRepository userTagsRepository;
 
     public ChatService(ChatRepository chatRepository,
                        UserRepository userRepository,
-                       BlockRepository blockRepository) {
+                       UserTagsRepository userTagsRepository) {
         this.chatRepository = chatRepository;
         this.userRepository = userRepository;
-        this.blockRepository = blockRepository;
+        this.userTagsRepository = userTagsRepository;
     }
 
     public Chat createChat(Long user1Id, Long user2Id) {
@@ -61,25 +61,25 @@ public class ChatService {
      * напрямку) або яких забанив адміністратор, зі списку зникають —
      * доступ до них закриває також AccessControlService.canAccessChat.
      */
-    public List<Chat> getUserChats(Long userId) {
-        return chatRepository.findByUser1UserIdOrUser2UserId(userId, userId).stream()
-                .filter(chat -> {
-                    User other = chat.getUser1().getUserId().equals(userId)
-                            ? chat.getUser2()
-                            : chat.getUser1();
-                    return !Boolean.TRUE.equals(other.getBlocked())
-                            && !blockRepository.existsBetween(userId, other.getUserId());
-                })
-                .collect(Collectors.toList());
+    public List<Chat> getUserChats(Long userId, int page, int size) {
+        return chatRepository.findVisibleChats(userId, PageRequest.of(page, size));
     }
 
     public ChatResponseDTO toResponseDTO(Chat chat) {
+        User first = chat.getUser1();
+        User second = chat.getUser2();
+
         return new ChatResponseDTO(
                 chat.getChatId(),
-                chat.getUser1().getUserId(),
-                chat.getUser1().getName(),
-                chat.getUser2().getUserId(),
-                chat.getUser2().getName()
+                first.getUserId(),
+                first.getName(),
+                second.getUserId(),
+                second.getName(),
+                first.getDateOfBirth(),
+                first.getCity(),
+                second.getDateOfBirth(),
+                second.getCity(),
+                userTagsRepository.countSharedTags(first.getUserId(), second.getUserId())
         );
     }
 }

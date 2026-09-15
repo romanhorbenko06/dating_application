@@ -13,14 +13,6 @@ public class SearchCriteria {
     public SearchCriteria() {
     }
 
-    public SearchCriteria(Gender gender, Integer minAge, Integer maxAge, String city, DatingGoal datingGoal) {
-        this.gender = gender;
-        this.minAge = minAge;
-        this.maxAge = maxAge;
-        this.city = city;
-        this.datingGoal = datingGoal;
-    }
-
     public Gender getGender() {
         return gender;
     }

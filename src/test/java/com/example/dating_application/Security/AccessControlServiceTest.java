@@ -29,13 +29,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
-/**
- * Правила доступу, які @PreAuthorize підставляє в контролери.
- *
- * Це другий бар'єр після автентифікації: він вирішує не «хто ти», а «чи можна
- * тобі саме це». Кожен метод — окреме правило, і помилка в будь-якому відкриває
- * чуже: анкету, чат, фото або чужу симпатію.
- */
+/** Правила доступу, які @PreAuthorize підставляє в контролери. */
 @ExtendWith(MockitoExtension.class)
 class AccessControlServiceTest {
 
@@ -69,8 +63,6 @@ class AccessControlServiceTest {
     void tearDown() {
         SecurityContextHolder.clearContext();
     }
-
-    // ── анкета ───────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("свою анкету редагує власник, чужу — ні")
@@ -124,8 +116,6 @@ class AccessControlServiceTest {
         assertThat(service.canRespondToRequest(null)).isFalse();
     }
 
-    // ── чат ──────────────────────────────────────────────────────────────
-
     @Test
     @DisplayName("чат доступний лише учасникам")
     void onlyParticipantsAccessChat() {
@@ -146,7 +136,6 @@ class AccessControlServiceTest {
         when(blockRepository.existsBetween(ME, OTHER)).thenReturn(true);
         assertThat(service.canAccessChat(10L)).as("взаємне блокування").isFalse();
 
-        // Бан перевіряється РАНІШЕ за блок, тож сам блок тут уже не опитується
         other.setBlocked(true);
         assertThat(service.canAccessChat(10L)).as("забанений співрозмовник").isFalse();
     }
@@ -158,8 +147,6 @@ class AccessControlServiceTest {
 
         assertThat(service.canAccessChat(404L)).isFalse();
     }
-
-    // ── фото й симпатії ──────────────────────────────────────────────────
 
     @Test
     @DisplayName("фото змінює лише його власник")
@@ -199,7 +186,6 @@ class AccessControlServiceTest {
     @Test
     @DisplayName("повідомлення редагує й видаляє лише автор")
     void onlyAuthorEditsMessage() {
-        // Правило подвійне: автор + доступ до чату, тож повідомленню потрібен чат
         Chat chat = chat(me, other);
         chat.setChatId(10L);
         when(chatRepository.findById(10L)).thenReturn(Optional.of(chat));
@@ -218,8 +204,6 @@ class AccessControlServiceTest {
         assertThat(service.canEditMessage(2L)).isFalse();
         assertThat(service.canDeleteMessage(2L)).isFalse();
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private static void authenticateAs(User user) {
         SecurityContextHolder.getContext().setAuthentication(

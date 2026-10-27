@@ -11,11 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Пушить нове повідомлення обом учасникам чату через WebSocket.
- * Викликається ПІСЛЯ збереження повідомлення в БД (консистентність:
- * БД — джерело правди, WebSocket — лише сповіщення).
- */
+/** Пуш подій чату обом учасникам; викликається після збереження в БД. */
 @Service
 public class ChatRealtimeNotifier {
 
@@ -29,22 +25,18 @@ public class ChatRealtimeNotifier {
         this.objectMapper = objectMapper;
     }
 
-    /** Пуш нового повідомлення обом учасникам. */
     public void notifyNewMessage(Chat chat, MessageResponseDTO message) {
         broadcast(chat, new WsEvent("NEW_MESSAGE", message));
     }
 
-    /** Пуш відредагованого повідомлення обом учасникам (FR-17.3). */
     public void notifyMessageEdited(Chat chat, MessageResponseDTO message) {
         broadcast(chat, new WsEvent("MESSAGE_EDITED", message));
     }
 
-    /** Пуш видалення повідомлення обом учасникам (FR-17.4); у payload content уже null. */
     public void notifyMessageDeleted(Chat chat, MessageResponseDTO message) {
         broadcast(chat, new WsEvent("MESSAGE_DELETED", message));
     }
 
-    /** Пуш квитанції прочитання обом учасникам (відправник бачить «прочитано», інші девайси синхронізуються). */
     public void notifyReadReceipt(Chat chat, Long readerId, List<Long> messageIds) {
         if (messageIds == null || messageIds.isEmpty()) {
             return;

@@ -7,19 +7,7 @@ import java.io.ByteArrayOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Розбір тега орієнтації з EXIF.
- *
- * Це єдине місце застосунку, яке руками ходить по чужому бінарному файлу — і
- * найнебезпечніше: дані приходять від користувача, а зміщення рахуються
- * вручну. Тут цінні не стільки «правильні» файли, скільки биті: обрізані,
- * з брехливою довжиною сегмента, з чужим порядком байтів. Жоден із них не
- * має ні впасти, ні прочитати щось поза масивом — лише чесно сказати
- * «повороту немає».
- *
- * Тест у тому ж пакеті, бо клас навмисно package-private: він деталь реалізації
- * обробки фото, а не частина API.
- */
+/** Розбір EXIF-орієнтації: биті файли не мають ні падати, ні читати поза масивом. */
 class ExifOrientationTest {
 
     @Test
@@ -37,7 +25,6 @@ class ExifOrientationTest {
     @Test
     @DisplayName("той самий тег читається і з little-endian EXIF")
     void readsOrientationFromLittleEndianExif() {
-        // Порядок байтів залежить від виробника камери, і обидва трапляються
         assertThat(ExifOrientation.read(jpegWithOrientation(8, false))).isEqualTo(8);
     }
 
@@ -94,7 +81,6 @@ class ExifOrientationTest {
     @DisplayName("брехлива довжина сегмента не виводить читання за межі масиву")
     void toleratesLyingSegmentLength() {
         byte[] jpeg = jpegWithOrientation(6, true);
-        // Сегмент APP1 починається одразу після SOI: підміняємо його довжину на величезну
         jpeg[4] = (byte) 0x7F;
         jpeg[5] = (byte) 0xFF;
 
@@ -112,9 +98,6 @@ class ExifOrientationTest {
         assertThat(ExifOrientation.read(jpeg)).isEqualTo(ExifOrientation.NORMAL);
     }
 
-    // ── збирання тестових файлів ─────────────────────────────────────────
-
-    /** SOI + порожній коментар + SOS: валідний початок JPEG без метаданих. */
     private static byte[] jpegWithoutExif() {
         return new byte[] {
                 (byte) 0xFF, (byte) 0xD8,             // SOI
@@ -123,10 +106,6 @@ class ExifOrientationTest {
         };
     }
 
-    /**
-     * Мінімальний JPEG із APP1/EXIF, де є рівно один тег — орієнтація.
-     * Структура: SOI, APP1(довжина, "Exif\0\0", TIFF-заголовок, IFD з одним записом), SOS.
-     */
     private static byte[] jpegWithOrientation(int orientation, boolean bigEndian) {
         ByteArrayOutputStream tiff = new ByteArrayOutputStream();
         write(tiff, bigEndian ? new byte[] {'M', 'M'} : new byte[] {'I', 'I'});

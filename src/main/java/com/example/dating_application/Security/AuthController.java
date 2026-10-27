@@ -81,19 +81,13 @@ public class AuthController {
         this.rateLimitService = rateLimitService;
     }
 
-    // ---------- обмеження спроб ----------
-
-    /**
-     * IP береться лише з реального з'єднання. X-Forwarded-For свідомо НЕ читаємо:
-     * без довіреного проксі його підробляє будь-хто, і ліміт на IP обходився б
-     * одним зайвим заголовком. За проксі правильний шлях — server.forward-headers-strategy.
-     */
+    /** IP лише з самого з'єднання: X-Forwarded-For без довіреного проксі підробляється. */
     private String clientIp(HttpServletRequest request) {
         String ip = request.getRemoteAddr();
         return ip == null ? "unknown" : ip;
     }
 
-    /** t***@example.com — лог не має бути готовою базою адрес. */
+    /** t***@example.com — щоб лог не став базою адрес. */
     private static String mask(String email) {
         if (email == null || email.indexOf('@') <= 1) {
             return "***";
@@ -109,10 +103,7 @@ public class AuthController {
         return action + ":ip:" + clientIp(request);
     }
 
-    /**
-     * 429 із Retry-After. Текст однаковий і для вичерпаного акаунта, і для IP:
-     * деталізація підказувала б атакуючому, який саме лічильник він упер.
-     */
+    /** Текст однаковий для акаунта й IP, щоб не підказувати, який ліміт вичерпано. */
     private ResponseEntity<Map<String, Object>> tooManyAttempts(String key) {
         long retryAfter = rateLimitService.secondsUntilReset(key);
         return ResponseEntity.status(429)
@@ -130,10 +121,7 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> register(
             @Valid @RequestBody RegisterRequest registerRequest, HttpServletRequest request) {
 
-        // Кожен успішний register шле лист із НАШОГО ящика на ЧУЖУ адресу.
-        // Без ліміту ендпоінт — відкритий спам-релей: кілька тисяч запитів,
-        // і поштовий акаунт блокують за розсилку. Тому тут, на відміну від
-        // /login і /verify, рахуються всі спроби, а не лише невдалі.
+        // Кожна реєстрація шле лист, тому тут рахуються всі спроби, а не лише невдалі.
         String eKey = emailKey("register", registerRequest.getEmail());
         String iKey = ipKey("register", request);
         if (rateLimitService.isLimited(eKey, registerMaxPerEmail)) {
@@ -146,8 +134,7 @@ public class AuthController {
         try {
             Optional<User> existingUser = userRepository.findByEmail(registerRequest.getEmail());
             if (existingUser.isPresent()) {
-                // Листа не було, але запит дешевий і придатний для перебору адрес —
-                // тримаємо лічильник IP, щоб гілка не стала безкоштовним оракулом.
+                // Листа не було, але лічильник тримаємо, щоб гілка не стала оракулом для перебору адрес.
                 rateLimitService.recordAttempt(iKey);
                 return ResponseEntity.status(400)
                         .body(Map.of(
@@ -170,9 +157,7 @@ public class AuthController {
             verificationCodeRepository.deleteByEmail(registerRequest.getEmail());
             verificationCodeRepository.save(verification);
 
-            // Лист — лише після успішного збереження, інакше можна надіслати код,
-            // якого немає в БД, і /verify його не прийме. Виклик асинхронний:
-            // відповідь не чекає на SMTP, а збій відправки не валить реєстрацію.
+            // Лист лише після збереження коду; відправка асинхронна й не валить реєстрацію.
             emailService.sendVerificationEmail(registerRequest.getEmail(), verificationCode);
 
             rateLimitService.recordAttempt(eKey);
@@ -185,13 +170,9 @@ public class AuthController {
                     ));
 
         } catch (BusinessException e) {
-            // Порушення бізнес-правила написане для людини — його текст іде клієнту
-            // (400 сформує GlobalExceptionHandler).
             throw e;
         } catch (Exception e) {
-            // Несподіваний збій: подробиці — у лог, клієнту — нейтральний текст.
-            // Інакше назовні їхала б внутрішня діагностика: назви таблиць, обмежень,
-            // класів. Те саме правило тримає GlobalExceptionHandler для 500.
+            // Подробиці в лог, клієнту нейтральний текст.
             logger.error("Реєстрація не вдалася для {}", mask(registerRequest.getEmail()), e);
             return ResponseEntity.status(400)
                     .body(Map.of(
@@ -330,7 +311,6 @@ public class AuthController {
                     ));
 
         } catch (DisabledException e) {
-            // Акаунт назавжди заблокований адміністратором
             User blocked = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
             String reason = blocked != null && blocked.getBlockReason() != null
                     ? blocked.getBlockReason()
@@ -344,9 +324,7 @@ public class AuthController {
                     ));
 
         } catch (BadCredentialsException e) {
-            // Єдина гілка, що свідчить про перебір: пароль не підійшов.
-            // DisabledException вище НЕ рахуємо — там пароль якраз правильний,
-            // просто акаунт забанений, і блокувати спроби немає сенсу.
+            // Рахуємо лише невірний пароль: забанений акаунт перебором не є.
             rateLimitService.recordFailure(eKey);
             rateLimitService.recordFailure(iKey);
             return ResponseEntity.status(403)
@@ -365,17 +343,7 @@ public class AuthController {
         }
     }
 
-    /**
-     * Вихід із застосунку.
-     *
-     * JWT не має стану, тож «завершити сесію» = внести токен у чорний список
-     * до його expiration. Гасне ЛИШЕ той токен, з яким прийшли: інші пристрої
-     * користувача лишаються залогіненими.
-     *
-     * Ідемпотентний: повторний вихід, протухлий чи побитий токен — усе 200,
-     * бо з погляду клієнта результат один і той самий (він розлогінений),
-     * а розрізняти ці випадки назовні означало б підказувати, чи токен справжній.
-     */
+    /** Відкликає лише поточний токен; ідемпотентний, завжди 200. */
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(HttpServletRequest request) {
 
@@ -402,7 +370,6 @@ public class AuthController {
             String jti = jwtUtil.getJtiFromToken(token);
             User user = userRepository.findByEmail(jwtUtil.getEmailFromToken(token)).orElse(null);
 
-            // jti немає лише в токенах, виданих до появи цієї функції — відкликати нічого
             if (jti != null && user != null) {
                 LocalDateTime expiresAt = jwtUtil.getExpirationFromToken(token)
                         .toInstant()
@@ -411,14 +378,11 @@ public class AuthController {
 
                 tokenRevocationService.revoke(jti, user.getUserId(), expiresAt);
 
-                // REST закриється наступним запитом через JwtFilter, а вже відкритий
-                // сокет інакше жив би до кінця дії токена й далі отримував повідомлення
+                // Відкритий сокет інакше жив би до кінця дії токена.
                 chatWebSocketHandler.disconnectToken(user.getUserId(), jti);
             }
         } catch (Exception e) {
-            // Токен пройшов перевірку підпису, але щось пішло не так при розборі.
-            // Клієнту однаково 200: він викидає токен і вважає себе розлогіненим.
-            // А от у лозі слід лишаємо: мовчазне ковтання ховає проблему назавжди.
+            // Клієнту однаково 200, але слід у лозі лишаємо.
             logger.warn("Не вдалося завершити вихід за токеном", e);
         }
 

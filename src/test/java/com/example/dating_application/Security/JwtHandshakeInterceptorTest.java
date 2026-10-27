@@ -28,15 +28,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Охорона WebSocket — єдині двері до real-time частини застосунку.
- *
- * Рукостискання йде ПОВЗ звичайний ланцюг Spring Security (браузер не може
- * додати заголовок Authorization до WebSocket-запиту), тож усі перевірки, які
- * для REST робить JwtFilter, тут доводиться робити заново. Пропущена перевірка
- * означає не «сторінка не відкрилась», а «забанений далі читає повідомлення
- * в реальному часі».
- */
+/** Рукостискання WebSocket іде повз Spring Security, тож перевірки JwtFilter тут повторюються. */
 @ExtendWith(MockitoExtension.class)
 class JwtHandshakeInterceptorTest {
 

@@ -17,14 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Фікстури для тестів на живій базі.
- *
- * Окремий клас, бо ті самі дані потрібні кільком тестам, а через EntityManager —
- * щоб не тягнути в тест півдюжини репозиторіїв заради двох рядків.
- * Email унікальний за рахунок лічильника: у межах одного контексту тести
- * створюють десятки користувачів, і збіг адреси впав би на обмеженні БД.
- */
+/** Фікстури для тестів на живій базі; email унікальний за рахунок лічильника. */
 final class TestData {
 
     private static final AtomicInteger COUNTER = new AtomicInteger();
@@ -120,7 +113,6 @@ final class TestData {
         em.persist(ut);
     }
 
-    /** Скидає persistence context: далі запити підуть у БД, а не в кеш першого рівня. */
     void flush() {
         em.flush();
         em.clear();

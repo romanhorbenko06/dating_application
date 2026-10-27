@@ -4,12 +4,10 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-
 @Entity
 @Table(name = "revoked_tokens")
 public class RevokedToken {
 
-    /** Claim jti відкликаного токена. */
     @Id
     @Column(name = "jti", nullable = false, updatable = false)
     private String jti;

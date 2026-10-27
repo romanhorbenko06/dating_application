@@ -23,14 +23,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Створення адміністратора при старті.
- *
- * Ключове правило: без заданого пароля адмін НЕ створюється взагалі. Раніше в
- * репозиторії лежав робочий `admin12345`, тобто адмінка будь-якого розгортання
- * відкривалася відомим паролем. Відсутній адмін гірший за працюючу модерацію,
- * але значно кращий за адмінку з паролем із репозиторію.
- */
+/** Без заданого пароля адмін не створюється. */
 @ExtendWith(MockitoExtension.class)
 class AdminInitializerTest {
 
@@ -83,8 +76,7 @@ class AdminInitializerTest {
     @Test
     @DisplayName("нерозвʼязаний плейсхолдер теж вважається «пароля немає»")
     void treatsUnresolvedPlaceholderAsMissing() {
-        // Spring лишає ${ADMIN_PASSWORD} як є, коли змінної оточення немає —
-        // створити адміна з таким «паролем» було б найгіршим із варіантів
+        // Spring лишає ${ADMIN_PASSWORD} як є, коли змінної оточення немає.
         ReflectionTestUtils.setField(initializer, "adminPassword", "${ADMIN_PASSWORD}");
 
         initializer.run();

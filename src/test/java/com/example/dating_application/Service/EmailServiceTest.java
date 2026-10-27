@@ -20,14 +20,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Надсилання коду підтвердження.
- *
- * Два різні режими: з вимкненою поштою код друкується в консоль (так працює
- * розробка без SMTP), з увімкненою — йде справжній лист. Найважливіше тут —
- * що збій SMTP НЕ валить реєстрацію: запис у БД уже зроблено, і людина може
- * попросити код ще раз.
- */
+/** Код у консоль або справжній лист; збій SMTP не валить реєстрацію. */
 class EmailServiceTest {
 
     private final JavaMailSender sender = mock(JavaMailSender.class);
@@ -124,8 +117,6 @@ class EmailServiceTest {
         assertThat(message.getSubject()).contains("777000");
     }
 
-    // ── допоміжне ────────────────────────────────────────────────────────
-
     private static MimeMessage emptyMimeMessage() {
         return new MimeMessage(Session.getInstance(new Properties()));
     }
@@ -133,7 +124,6 @@ class EmailServiceTest {
     private static String asText(MimeMessage message) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         message.writeTo(out);
-        // Кирилиця в листі закодована, тож шукаємо по декодованому вигляду теж
         String raw = out.toString(java.nio.charset.StandardCharsets.UTF_8);
         return raw + "\n" + raw.replace("=\r\n", "").replace("=\n", "");
     }

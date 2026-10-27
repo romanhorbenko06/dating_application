@@ -13,22 +13,7 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Часткове оновлення анкети (PATCH). На відміну від {@link UserUpdateDTO}
- * тут КОЖНЕ поле необов'язкове: чого немає в тілі — те лишається як було.
- *
- * Саме тому немає @NotNull/@NotBlank — вони перетворили б PATCH назад на PUT.
- * Обмеження @Size і @Past лишились: за специфікацією Bean Validation вони
- * пропускають null, тож перевіряють лише те, що клієнт справді надіслав.
- *
- * Як ОЧИСТИТИ поле: надіслати ключ зі значенням {@code null} (для рядків
- * годиться й {@code ""}). Класичної для PATCH плутанини «поля немає» проти
- * «поле прийшло як null» тут немає: DTO запам'ятовує, які ключі БУЛИ в тілі —
- * Jackson кличе сеттер лише для присутніх ключів, навіть коли значення null.
- * Через це не потрібен ні окремий маркер, ні обхідний шлях через
- * PREFER_NOT_TO_SAY: «не вказано» (null) і «волію не вказувати» — різні речі,
- * і клієнт може виставити будь-яку з них.
- */
+/** PATCH анкети: DTO запам'ятовує, які ключі були в тілі, тож явний null очищає поле. */
 public class UserPatchDTO {
 
     @Size(min = 2, max = 50, message = "Name must be between 2 and 50 characters")
@@ -53,7 +38,6 @@ public class UserPatchDTO {
 
     private ChildrenStatus childrenStatus;
 
-    /** Імена полів, які були в тілі запиту. Заповнюють сеттери. */
     @JsonIgnore
     private final Set<String> provided = new HashSet<>();
 

@@ -13,7 +13,6 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 
 import java.util.Map;
 
-
 @Component
 public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
@@ -51,7 +50,6 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             return reject(response);
         }
 
-        // Розлогінений токен не відкриває нове з'єднання (FR-5)
         String jti = jwtUtil.getJtiFromToken(token);
         if (tokenRevocationService.isRevoked(jti)) {
             return reject(response);
@@ -63,7 +61,6 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             return reject(response);
         }
 
-        // Забаненого адміністратором не пускаємо навіть із валідним токеном
         if (Boolean.TRUE.equals(user.getBlocked())) {
             return reject(response);
         }
@@ -81,6 +78,5 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
     @Override
     public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                WebSocketHandler wsHandler, Exception exception) {
-        // нічого не потрібно
     }
 }

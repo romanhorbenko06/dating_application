@@ -13,6 +13,7 @@ import com.example.dating_application.Entity.User;
 import com.example.dating_application.Repo.BlockRepository;
 import com.example.dating_application.Repo.ChatRepository;
 import com.example.dating_application.Repo.ComplaintRepository;
+import com.example.dating_application.Repo.IslandGameRepository;
 import com.example.dating_application.Repo.MessageRepository;
 import com.example.dating_application.Repo.NotificationRepository;
 import com.example.dating_application.Repo.RequestRepository;
@@ -39,6 +40,7 @@ public class UserService {
     private final PhotoRepository photoRepository;
     private final PhotoStorageService photoStorageService;
     private final NotificationRepository notificationRepository;
+    private final IslandGameRepository islandGameRepository;
 
     public UserService(UserRepository userRepository,
                        ComplaintRepository complaintRepository,
@@ -48,7 +50,8 @@ public class UserService {
                        BlockRepository blockRepository,
                        PhotoRepository photoRepository,
                        PhotoStorageService photoStorageService,
-                       NotificationRepository notificationRepository) {
+                       NotificationRepository notificationRepository,
+                       IslandGameRepository islandGameRepository) {
         this.userRepository = userRepository;
         this.complaintRepository = complaintRepository;
         this.requestRepository = requestRepository;
@@ -58,6 +61,7 @@ public class UserService {
         this.photoRepository = photoRepository;
         this.photoStorageService = photoStorageService;
         this.notificationRepository = notificationRepository;
+        this.islandGameRepository = islandGameRepository;
     }
 
     public User getById(Long id) {
@@ -69,7 +73,6 @@ public class UserService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException("User not found"));
     }
-
 
     public List<User> getAll() {
         return userRepository.findAll();
@@ -84,8 +87,6 @@ public class UserService {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new BusinessException("Email already registered");
         }
-
-        //  Spring Security
 
         return userRepository.save(user);
     }
@@ -106,26 +107,13 @@ public class UserService {
         return userRepository.save(u);
     }
 
-    /**
-     * Часткове оновлення (PATCH): чого немає в тілі — те лишається як було.
-     *
-     * PUT-варіант вище затирає все, чого немає в тілі, — на фронті це стріляє
-     * першим: форма редагування, що шле лише змінені поля, обнуляє решту анкети.
-     * Тут такого немає, тому клієнту не треба щоразу надсилати весь профіль.
-     *
-     * Орієнтир — не значення поля, а сама ПРИСУТНІСТЬ ключа в JSON (див.
-     * {@link UserPatchDTO}). Тому явний {@code null} очищає необов'язкове поле,
-     * а не мовчки ігнорується: «не вказано» (null) і «волію не вказувати»
-     * (PREFER_NOT_TO_SAY) — різні відповіді, і клієнт має право на обидві.
-     * Обов'язкові поля (ім'я, стать, дата народження, мета) очистити не можна:
-     * явний null для них — помилка клієнта, а не спосіб щось прибрати.
-     */
+    /** PATCH: оновлюються лише ключі, присутні в JSON; явний null очищає необов'язкове поле. */
     @Transactional
     public User patchProfile(Long userId, UserPatchDTO dto) {
         User u = getById(userId);
 
         if (dto.hasName()) {
-            // @Size(min=2) пропускає "  " — довжина є, змісту немає.
+            // @Size(min=2) пропускає "  ".
             String name = dto.getName() == null ? "" : dto.getName().trim();
             if (name.isEmpty()) {
                 throw new BusinessException("Name must not be blank");
@@ -160,7 +148,6 @@ public class UserService {
         return userRepository.save(u);
     }
 
-    /** Порожній рядок і пробіли зводимо до null: у БД «не заповнено» має виглядати однаково. */
     private static String blankToNull(String value) {
         if (value == null) {
             return null;
@@ -202,43 +189,31 @@ public class UserService {
     public void deleteUser(Long userId) {
         User u = getById(userId);
 
-        // Адміністратора не видаляє ніхто — ні інший адмін, ні він сам.
-        // Без цієї перевірки будь-який адмін міг вигребти всіх адміністраторів
-        // (і себе), а застосунок лишився б без модерації: AdminInitializer
-        // відновить лише дефолтний акаунт із application.properties, і лише при рестарті.
-        // Перевірка стоїть у сервісі, а не в контролері, бо сюди ведуть два шляхи:
-        // DELETE /api/admin/users/{id} і DELETE /api/users/{id}.
+        // Адміністратора не видаляє ніхто, інакше застосунок міг лишитися без модерації.
         if (u.getRole() == Role.ADMIN) {
             throw new BusinessException("Administrators cannot be deleted");
         }
 
-        // Прибираємо залежні записи, які посилаються на користувача (FK),
-        // інакше видалення впаде на обмеженні цілісності.
+        // Спершу залежні записи, інакше видалення впаде на FK.
 
-        // 1. Скарги, де користувач — автор або об'єкт
         complaintRepository.deleteByReporterUserIdOrReportedUserUserId(userId, userId);
 
-        // 2. Лайки/пропуски, надіслані або отримані користувачем
         requestRepository.deleteByFromUserUserIdOrToUserUserId(userId, userId);
 
-        // 3. Блокування, поставлені користувачем або на нього
         blockRepository.deleteByBlockerUserIdOrBlockedUserId(userId, userId);
 
-        // 4. Сповіщення, адресовані користувачеві або спричинені ним
         notificationRepository.deleteByRecipientUserIdOrActorUserId(userId, userId);
 
-        // 5. Чати за участю користувача разом з їхніми повідомленнями
         List<Chat> chats = chatRepository.findByUser1UserIdOrUser2UserId(userId, userId);
         for (Chat chat : chats) {
             messageRepository.deleteByChatChatId(chat.getChatId());
+            islandGameRepository.deleteByChatChatId(chat.getChatId());
         }
         chatRepository.deleteAll(chats);
 
-        // 6. Файли фотографій з диска. Записи в БД підуть каскадно разом із користувачем,
-        //    але каскад не знає про диск — без цього кроку файли лишалися б назавжди.
+        // Каскад не знає про диск, тож файли прибираємо окремо.
         List<Photo> photos = photoRepository.findByUserUserId(userId);
 
-        // 7. Сам користувач (фото й теги видаляються каскадно)
         userRepository.delete(u);
 
         photos.forEach(photo -> photoStorageService.deleteAfterCommit(photo.getFileName()));

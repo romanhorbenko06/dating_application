@@ -29,14 +29,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Скарги (FR-20, UC-13) — вхід у модерацію.
- *
- * Правила створення тут не косметичні: скарга на себе чи на адміністратора
- * засмічує чергу, яку розбирає жива людина, а статус визначає, чи буде
- * взагалі покарання. Помилка в цьому місці тиха — вона не ламає застосунок,
- * а лише робить чергу модерації непридатною.
- */
+/** Правила створення й розгляду скарг (FR-20, UC-13). */
 @ExtendWith(MockitoExtension.class)
 class ComplaintServiceTest {
 
@@ -62,8 +55,6 @@ class ComplaintServiceTest {
         lenient().when(complaintRepository.save(any(Complaint.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
     }
-
-    // ── створення ────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("скарга створюється зі статусом PENDING і датою")
@@ -117,8 +108,6 @@ class ComplaintServiceTest {
                 .hasMessageContaining("Reported user not found");
     }
 
-    // ── статуси ──────────────────────────────────────────────────────────
-
     @Test
     @DisplayName("модератор переводить скаргу в «розглядається»")
     void markReviewedChangesStatus() {
@@ -155,8 +144,6 @@ class ComplaintServiceTest {
         assertThatThrownBy(() -> service.resolve(404L)).isInstanceOf(BusinessException.class);
         assertThatThrownBy(() -> service.reject(404L)).isInstanceOf(BusinessException.class);
     }
-
-    // ── вибірки ──────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("без фільтра беруться всі скарги, з фільтром — лише потрібного статусу")
@@ -205,8 +192,6 @@ class ComplaintServiceTest {
         assertThat(dto.getReason()).isEqualTo("спам");
         assertThat(dto.getStatus()).isEqualTo(ComplaintStatus.PENDING);
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private Complaint pending(long id) {
         Complaint c = new Complaint();

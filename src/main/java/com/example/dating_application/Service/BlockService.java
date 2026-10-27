@@ -35,7 +35,6 @@ public class BlockService {
             throw new BusinessException("Administrators cannot be blocked");
         }
 
-        // Ідемпотентно: повторний виклик не створює другий рядок
         var existing = blockRepository.findByBlockerUserIdAndBlockedUserId(blockerId, blockedId);
         if (existing.isPresent()) {
             return existing.get();

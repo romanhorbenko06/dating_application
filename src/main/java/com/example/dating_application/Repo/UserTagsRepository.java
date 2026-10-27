@@ -15,11 +15,6 @@ public interface UserTagsRepository extends JpaRepository<UserTags, Long> {
 
     void deleteByUserUserIdAndTagTagId(Long userId, Long tagId);
 
-    /**
-     * Скільки тем збігається у двох людей. Одним запитом: інакше на кожен рядок
-     * списку симпатій довелося б витягати обидва набори тегів і перетинати їх у пам'яті.
-     * Симетрична — порядок аргументів не має значення.
-     */
     @Query("""
             select count(first)
             from UserTags first, UserTags second

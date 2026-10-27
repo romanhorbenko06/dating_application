@@ -36,8 +36,6 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .accountExpired(false)
                 .accountLocked(false)
                 .credentialsExpired(false)
-                // Забанений адміністратором акаунт не автентифікується:
-                // DaoAuthenticationProvider кине DisabledException
                 .disabled(Boolean.TRUE.equals(user.getBlocked()))
                 .build();
     }

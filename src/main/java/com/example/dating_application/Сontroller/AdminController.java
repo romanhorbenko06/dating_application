@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 @PreAuthorize("@accessControlService.isCurrentUserAdmin()")
 public class AdminController {
 
-    /** Сторінка за замовчуванням. Раніше черга скарг віддавалась цілком. */
     private static final int DEFAULT_PAGE_SIZE = 50;
 
     private final ComplaintService complaintService;
@@ -80,7 +79,6 @@ public class AdminController {
         return ResponseEntity.ok(complaintService.toResponseDTO(complaint));
     }
 
-    /** Відхилити скаргу як безпідставну (FR-21.2) — порушення не підтвердилось. */
     @PutMapping("/complaints/{id}/reject")
     public ResponseEntity<ComplaintResponseDTO> rejectComplaint(@PathVariable Long id) {
         var complaint = complaintService.reject(id);

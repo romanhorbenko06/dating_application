@@ -1,9 +1,7 @@
 package com.example.dating_application.Service;
 
-
 final class ExifOrientation {
 
-    /** Значення за замовчуванням: повертати не треба. */
     static final int NORMAL = 1;
 
     private static final int TAG_ORIENTATION = 0x0112;
@@ -11,31 +9,26 @@ final class ExifOrientation {
     private ExifOrientation() {
     }
 
-    /**
-     * @return значення орієнтації 1..8, або {@link #NORMAL}, якщо тега немає
-     *         чи структура файлу несподівана (гадати не намагаємось)
-     */
     static int read(byte[] jpeg) {
         try {
             return parse(jpeg);
         } catch (RuntimeException e) {
-            // Пошкоджений або нестандартний EXIF — просто вважаємо, що повороту немає
             return NORMAL;
         }
     }
 
     private static int parse(byte[] d) {
         if (d.length < 4 || u(d[0]) != 0xFF || u(d[1]) != 0xD8) {
-            return NORMAL; // не JPEG
+            return NORMAL;
         }
 
         int i = 2;
         while (i + 4 <= d.length) {
             if (u(d[i]) != 0xFF) {
-                return NORMAL; // втратили межу сегмента
+                return NORMAL;
             }
             int marker = u(d[i + 1]);
-            // SOS (FFDA) — далі стиснуті дані, метаданих уже не буде
+            // SOS: далі стиснуті дані
             if (marker == 0xDA || marker == 0xD9) {
                 return NORMAL;
             }
@@ -46,7 +39,6 @@ final class ExifOrientation {
                 return NORMAL;
             }
 
-            // APP1 із сигнатурою "Exif\0\0"
             if (marker == 0xE1 && segmentStart + 6 <= d.length
                     && d[segmentStart] == 'E' && d[segmentStart + 1] == 'x'
                     && d[segmentStart + 2] == 'i' && d[segmentStart + 3] == 'f'
@@ -59,7 +51,6 @@ final class ExifOrientation {
         return NORMAL;
     }
 
-    /** Усередині APP1 лежить маленький TIFF: заголовок із порядком байтів і каталог тегів. */
     private static int parseTiff(byte[] d, int tiffStart, int limit) {
         if (tiffStart + 8 > limit) {
             return NORMAL;
@@ -87,7 +78,6 @@ final class ExifOrientation {
                 return NORMAL;
             }
             if (int16(d, entry, bigEndian) == TAG_ORIENTATION) {
-                // тип SHORT: значення лежить прямо в полі, у перших двох байтах
                 int value = int16(d, entry + 8, bigEndian);
                 return (value >= 1 && value <= 8) ? value : NORMAL;
             }

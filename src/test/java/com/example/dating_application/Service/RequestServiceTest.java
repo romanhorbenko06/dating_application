@@ -32,15 +32,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Життєвий цикл симпатії — найдорожче місце застосунку: саме тут 08.09.2026
- * знайшовся баг, через який людина, чию симпатію вже прийняли, поверталась
- * у стрічку й отримувала другий лайк. Кожен тест нижче описує одне правило,
- * яке тоді довелося дописати або полагодити.
- *
- * Репозиторії підмінені: правила не залежать від бази, а прогін лишається
- * миттєвим. Те, що самі ЗАПИТИ коректні, перевіряється окремо, на живій БД.
- */
+/** Життєвий цикл симпатії; репозиторії підмінені. */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class RequestServiceTest {
@@ -74,8 +66,6 @@ class RequestServiceTest {
                 .thenReturn(Optional.empty());
         when(requestRepository.save(any(Request.class))).thenAnswer(inv -> inv.getArgument(0));
     }
-
-    // ── Надсилання симпатії ──────────────────────────────────────────────
 
     @Test
     @DisplayName("звичайний лайк створює запит у стані PENDING")
@@ -136,14 +126,10 @@ class RequestServiceTest {
                 .isInstanceOf(BusinessException.class);
     }
 
-    // ── Саме те, що було зламано ─────────────────────────────────────────
-
     @Test
     @DisplayName("РЕГРЕСІЯ: не можна лайкнути того, чию симпатію я вже ПРИЙНЯВ")
     void cannotLikeWhenMatchCameFromTheirRequest() {
-        // Метч створено з ЇХНЬОГО лайку, тож ACCEPTED-рядок належить їм.
-        // Стара перевірка дивилась лише на мої власні рядки й цього не бачила —
-        // через це людина отримувала другу картку «прийняти» вже маючи чат.
+        // Метч створено з їхнього лайку, тож ACCEPTED-рядок належить їм.
         when(requestRepository.findByFromUserUserIdAndToUserUserIdAndStatus(THEM, ME, RequestStatus.ACCEPTED))
                 .thenReturn(Optional.of(request(THEM, ME, RequestStatus.ACCEPTED)));
 
@@ -180,8 +166,6 @@ class RequestServiceTest {
                 .isSameAs(theirs);
     }
 
-    // ── Прийняття симпатії ───────────────────────────────────────────────
-
     @Test
     @DisplayName("прийняття створює чат і переводить запит в ACCEPTED")
     void acceptCreatesChat() {
@@ -198,9 +182,7 @@ class RequestServiceTest {
     @Test
     @DisplayName("прийняття гасить і зустрічний запит, якщо він був")
     void acceptAlsoResolvesOppositePendingRequest() {
-        // Обидва встигли лайкнути одне одного до того, як хтось натиснув «прийняти».
-        // Якби мій зустрічний рядок лишився PENDING, він висів би в ЇХНІХ «Симпатіях»
-        // уже після створення чату — саме це й бачив користувач.
+        // Обидва лайкнули до прийняття: мій зустрічний рядок не має лишитися PENDING.
         Request theirs = request(THEM, ME, RequestStatus.PENDING);
         theirs.setRequestId(5L);
         Request mine = request(ME, THEM, RequestStatus.PENDING);
@@ -253,8 +235,6 @@ class RequestServiceTest {
                 .isInstanceOf(BusinessException.class);
         verify(chatService, never()).createChat(anyLong(), anyLong());
     }
-
-    // ── Допоміжне ────────────────────────────────────────────────────────
 
     private static User user(long id, String name) {
         User u = new User();

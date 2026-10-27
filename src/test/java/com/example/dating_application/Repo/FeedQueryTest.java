@@ -20,16 +20,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Стрічка (FR-9…FR-12) — запит, а не Java-логіка, тож перевіряти його можна лише
- * на справжній базі. Саме тут 08.09.2026 знайшовся баг: умова дивилась лише на
- * МОЇ вихідні запити, і людина, чию симпатію я прийняв, поверталася в стрічку.
- *
- * @DataJpaTest піднімає тільки JPA-шар (без веб-частини й WebSocket), кожен тест
- * іде у власній транзакції й відкочується — дані між тестами не перетікають.
- * replace = NONE: типово зріз підмінив би базу на вбудовану, а її тут немає,
- * та й перевіряти треба саме Postgres, на якому застосунок працює.
- */
+/** Запит стрічки (FR-9…FR-12) на справжньому Postgres. */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
@@ -47,7 +38,6 @@ class FeedQueryTest {
         me = data.user("Я");
     }
 
-    /** Виклик із порожніми фільтрами — саме так ходить FeedService, коли нічого не задано. */
     private List<User> feed() {
         return userRepository.findFeedCandidates(
                 me.getUserId(), false, null, null, false, null,
@@ -105,8 +95,7 @@ class FeedQueryTest {
     @Test
     @DisplayName("РЕГРЕСІЯ: людина, чию симпатію я ПРИЙНЯВ, у стрічку не повертається")
     void hidesPersonWhoseLikeIAccepted() {
-        // Рядок Request належить ЇЙ, а не мені — стара умова його не бачила,
-        // і після метчу людина знову з'являлася в стрічці.
+        // Рядок Request належить їй, а не мені.
         User matched = data.user("Метч");
         data.request(matched, me, RequestStatus.ACCEPTED);
         data.flush();
@@ -137,7 +126,6 @@ class FeedQueryTest {
     @Test
     @DisplayName("а от той, хто пропустив МЕНЕ, зі стрічки не зникає")
     void keepsPersonWhoSkippedMe() {
-        // Їхній пропуск — їхня приватна справа, і він не має обмежувати мій пошук.
         User indifferent = data.user("Пропустила мене");
         data.request(indifferent, me, RequestStatus.SKIPPED);
         data.flush();
@@ -183,7 +171,6 @@ class FeedQueryTest {
                 DatingGoal.FRIENDSHIP, LocalDate.of(1970, 1, 1));
         data.flush();
 
-        // «не молодші за 30»: народжені не пізніше ніж 30 років тому
         List<User> atLeast30 = userRepository.findFeedCandidates(
                 me.getUserId(), false, null, null, false, null,
                 true, LocalDate.now().minusYears(30), false, null, PageRequest.of(0, 20));

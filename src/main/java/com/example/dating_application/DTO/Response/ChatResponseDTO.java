@@ -2,25 +2,17 @@ package com.example.dating_application.DTO.Response;
 
 import java.time.LocalDate;
 
-/**
- * Безпечне представлення чату — лише публічні дані учасників (id, ім'я,
- * дата народження, місто), без email/ролі/статусу верифікації.
- */
+/** Лише публічні дані учасників, без email, ролі й статусу верифікації. */
 public class ChatResponseDTO {
     private Long chatId;
     private Long user1Id;
     private String user1Name;
     private Long user2Id;
     private String user2Name;
-    /**
-     * Вік і місто обох учасників — щоб список збігів не добирав анкету
-     * на кожен рядок. Хто з них «співрозмовник», клієнт визначає сам.
-     */
     private LocalDate user1DateOfBirth;
     private String user1City;
     private LocalDate user2DateOfBirth;
     private String user2City;
-    /** Скільки тем збігається в учасників чату. Величина симетрична. */
     private long sharedTagCount;
 
     public ChatResponseDTO() {

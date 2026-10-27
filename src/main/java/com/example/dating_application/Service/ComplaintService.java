@@ -38,8 +38,7 @@ public class ComplaintService {
         var reportedUser = userRepository.findById(reportedUserId)
                 .orElseThrow(() -> new BusinessException("Reported user not found"));
 
-        // Скарга на адміністратора не має адресата: розглядати її нікому,
-        // а в черзі модерації вона лише створювала б шум.
+        // Скарга на адміністратора не має кому розглядати.
         if (reportedUser.getRole() == Role.ADMIN) {
             throw new BusinessException("Administrators cannot be reported");
         }
@@ -80,10 +79,6 @@ public class ComplaintService {
         return complaintRepository.save(c);
     }
 
-    /**
-     * Відхилити скаргу як безпідставну (FR-21.2). На відміну від resolve,
-     * означає, що порушення не підтвердилось і санкцій не буде.
-     */
     public Complaint reject(Long complaintId) {
 
         Complaint c = complaintRepository.findById(complaintId)
@@ -111,4 +106,3 @@ public class ComplaintService {
         );
     }
 }
-

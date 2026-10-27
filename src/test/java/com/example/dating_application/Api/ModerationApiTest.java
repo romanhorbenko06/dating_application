@@ -30,13 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Модерація цілком (UC-13, UC-14): від скарги користувача до бану порушника.
- *
- * Саме той шлях, яким на захисті йтимуть найпершим, і водночас найменш покритий
- * до цього тесту. Перевіряється не лише «ендпоінт відповів 200», а наслідки:
- * забанений втрачає доступ, скарга змінює статус, дейтер до адмінки не доходить.
- */
+/** Модерація (UC-13, UC-14): від скарги до бану порушника. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -69,13 +63,11 @@ class ModerationApiTest {
     void fullModerationCycle() throws Exception {
         long complaintId = fileComplaint("ображає в переписці");
 
-        // Скарга стоїть у черзі саме як нерозглянута
         JsonNode pending = adminGet("/api/admin/complaints?status=PENDING");
         assertThat(findById(pending, complaintId)).isNotNull();
         assertThat(findById(pending, complaintId).get("reportedUserName").asText())
                 .isEqualTo("Порушник");
 
-        // Модератор бере в роботу
         mvc.perform(put("/api/admin/complaints/" + complaintId + "/review")
                         .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
                 .andExpect(status().isOk());
@@ -83,14 +75,12 @@ class ModerationApiTest {
                 .as("із черги нерозглянутих скарга має піти")
                 .isNull();
 
-        // Порушення підтвердилось
         MvcResult resolved = mvc.perform(put("/api/admin/complaints/" + complaintId + "/resolve")
                         .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
                 .andExpect(status().isOk())
                 .andReturn();
         assertThat(body(resolved).get("status").asText()).isEqualTo("RESOLVED");
 
-        // І бан порушника
         mvc.perform(put("/api/admin/users/" + offender.getUserId() + "/block")
                         .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -101,9 +91,7 @@ class ModerationApiTest {
                 .as("забанений має з'явитись у списку")
                 .isNotNull();
 
-        // Раніше виданий токен перестає діяти одразу: JwtFilter бачить бан і не
-        // автентифікує запит, тож приходить 401, а не 403. Причину бану людина
-        // побачить при спробі увійти — саме там вона щось означає.
+        // JwtFilter бачить бан і не автентифікує запит, тож 401, а не 403.
         mvc.perform(get("/api/users/me").header(HttpHeaders.AUTHORIZATION, bearer(offenderToken)))
                 .andExpect(status().isUnauthorized());
     }
@@ -231,8 +219,6 @@ class ModerationApiTest {
                         .content("{\"reason\":\"другий раз\"}"))
                 .andExpect(status().isBadRequest());
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private long fileComplaint(String reason) throws Exception {
         return fileComplaintFrom(reporterToken, reason);

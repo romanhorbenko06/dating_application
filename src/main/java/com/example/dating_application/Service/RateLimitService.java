@@ -9,20 +9,10 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Обмеження кількості НЕВДАЛИХ спроб (для /login і /verify).
- *
- * Рахуються саме невдачі, а не всі запити: успішний вхід нікому не заважає,
- * а перебір складається виключно з промахів. Успіх скидає лічильник акаунта.
- *
- * Вікно фіксоване й починається з першої невдачі. Лічильник у пам'яті —
- * цього достатньо для одного інстанса; при горизонтальному масштабуванні
- * знадобився б спільний Redis, інакше ліміт множиться на кількість вузлів.
- */
+/** Ліміт невдалих спроб для /login і /verify. Лічильник у пам'яті — розрахунок на один інстанс. */
 @Service
 public class RateLimitService {
 
-    /** Запис вікна: скільки невдач і коли вікно спливає. */
     private record Window(int count, Instant expiresAt) {
     }
 
@@ -33,7 +23,6 @@ public class RateLimitService {
         this.window = Duration.ofMinutes(windowMinutes);
     }
 
-    /** Чи вичерпано ліміт. Протухле вікно прибирається одразу. */
     public boolean isLimited(String key, int maxAttempts) {
         Window w = windows.get(key);
         if (w == null) {
@@ -46,12 +35,7 @@ public class RateLimitService {
         return w.count() >= maxAttempts;
     }
 
-    /**
-     * Фіксує спробу. compute — щоб паралельні запити не загубили інкремент.
-     *
-     * Для /register рахуються ВСІ спроби, а не лише невдачі: там кожен успішний
-     * запит шле лист, тож дорогою є саме вдала операція.
-     */
+    /** compute, щоб паралельні запити не загубили інкремент. */
     public void recordAttempt(String key) {
         Instant now = Instant.now();
         windows.compute(key, (k, w) ->
@@ -60,17 +44,14 @@ public class RateLimitService {
                         : new Window(w.count() + 1, w.expiresAt()));
     }
 
-    /** Невдала спроба входу/підтвердження — той самий лічильник. */
     public void recordFailure(String key) {
         recordAttempt(key);
     }
 
-    /** Успіх — лічильник акаунта обнуляється. */
     public void reset(String key) {
         windows.remove(key);
     }
 
-    /** Скільки секунд лишилось до розблокування — віддається клієнту в Retry-After. */
     public long secondsUntilReset(String key) {
         Window w = windows.get(key);
         if (w == null) {
@@ -80,7 +61,6 @@ public class RateLimitService {
         return Math.max(seconds, 0);
     }
 
-    /** Без прибирання мапа росла б на кожен новий email/IP, який колись помилився. */
     @Scheduled(fixedDelay = 10 * 60 * 1000L, initialDelay = 10 * 60 * 1000L)
     public void purgeExpired() {
         Instant now = Instant.now();

@@ -8,7 +8,6 @@ import com.example.dating_application.Entity.Temperament;
 
 import java.time.LocalDate;
 
-
 public class PublicProfileDTO {
     private Long userId;
     private String name;
@@ -20,7 +19,7 @@ public class PublicProfileDTO {
     private EducationLevel educationLevel;
     private Temperament temperament;
     private ChildrenStatus childrenStatus;
-    /** Скільки фото має користувач. Саму кількість видно й до взаємної симпатії — контент ні. */
+    /** Кількість видно й до взаємної симпатії, самі фото — ні. */
     private long photoCount;
 
     public PublicProfileDTO() {

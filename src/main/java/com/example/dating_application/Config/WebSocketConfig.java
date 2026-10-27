@@ -31,10 +31,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
         ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();
         container.setMaxTextMessageBufferSize(16 * 1024);
         container.setMaxBinaryMessageBufferSize(16 * 1024);
-        // Страхувальна сітка контейнера. Основний механізм — ping/pong кожні 25 с
-        // у ChatWebSocketHandler; живу сесію цей таймаут не чіпає, бо кожен pong
-        // від клієнта оновлює час активності. Спрацює лише там, де наш reaper
-        // чомусь не дійшов до сесії.
+        // Страховка: основний механізм — ping/pong у ChatWebSocketHandler.
         container.setMaxSessionIdleTimeout(120_000L);
         return container;
     }
@@ -42,11 +39,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final ChatWebSocketHandler chatWebSocketHandler;
     private final JwtHandshakeInterceptor jwtHandshakeInterceptor;
 
-    /**
-     * Той самий список, що й для HTTP (app.cors.allowed-origins) — щоб не було
-     * місця, де дозволено більше. Рукостискання WebSocket іде повз CorsFilter,
-     * тому налаштовується окремо, але з того ж джерела.
-     */
+    /** Той самий список, що й для HTTP: рукостискання йде повз CorsFilter. */
     private final List<String> allowedOrigins;
 
     public WebSocketConfig(ChatWebSocketHandler chatWebSocketHandler,

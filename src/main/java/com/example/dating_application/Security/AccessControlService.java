@@ -39,9 +39,6 @@ public class AccessControlService {
         this.messageRepository = messageRepository;
     }
 
-    // ---------- helpers ----------
-
-    /** Безпечно дістає поточного користувача або null (без ClassCastException). */
     private User currentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
@@ -58,9 +55,6 @@ public class AccessControlService {
         return user != null && ownerId != null && ownerId.equals(user.getUserId());
     }
 
-    // ---------- profile ----------
-
-    /** Редагувати / видаляти профіль може лише власник або адміністратор. */
     public boolean canEditProfile(Long userId) {
         User me = currentUser();
         if (me == null || userId == null) return false;
@@ -85,15 +79,7 @@ public class AccessControlService {
                 .orElse(false);
     }
 
-    // ---------- photos ----------
-
-    /**
-     * Змінювати / видаляти фото може ЛИШЕ його власник — навіть адміністратор не редагує
-     * чужий контент. Інструмент модерації для адміна — бан акаунта
-     * (PUT /api/admin/users/{id}/block), а не правки в чужому профілі.
-     * Раніше тут був виняток для адміна, але сервіс усе одно перевіряв власника,
-     * тож адмін отримував заплутану 400 замість чесної 403.
-     */
+    /** Лише власник: модерація для адміна — бан акаунта, а не правки чужого профілю. */
     public boolean canModifyPhoto(Long photoId) {
         User me = currentUser();
         if (me == null || photoId == null) return false;
@@ -112,9 +98,6 @@ public class AccessControlService {
         return canModifyPhoto(photoId);
     }
 
-    // ---------- requests (likes) ----------
-
-    /** Приймати / відхиляти лайк може лише його адресат (toUser). */
     public boolean canRespondToRequest(Long requestId) {
         User me = currentUser();
         if (me == null || requestId == null) return false;
@@ -133,13 +116,7 @@ public class AccessControlService {
         return canRespondToRequest(requestId);
     }
 
-    // ---------- chats ----------
-
-    /**
-     * Читати чат / писати в нього може лише його учасник (або адміністратор).
-     * Якщо між учасниками з'явився блок — чат стає недоступним обом
-     * (і на читання, і на відправку), як і решта взаємодії.
-     */
+    /** Учасник або адміністратор; блок між учасниками закриває чат обом. */
     public boolean canAccessChat(Long chatId) {
         User me = currentUser();
         if (me == null || chatId == null) return false;
@@ -158,7 +135,7 @@ public class AccessControlService {
                 : chat.getUser1();
 
         if (Boolean.TRUE.equals(other.getBlocked())) {
-            return false; // співрозмовника назавжди забанив адміністратор
+            return false;
         }
 
         return !blockRepository.existsBetween(myId, other.getUserId());
@@ -172,12 +149,7 @@ public class AccessControlService {
         return canAccessChat(chatId);
     }
 
-    /**
-     * Редагувати / видаляти повідомлення може ЛИШЕ його автор і лише поки
-     * чат для нього доступний (немає блоку, співрозмовника не забанили).
-     * Адміністратор винятку НЕ має — як і з фото: модерація це бан,
-     * а не правка чужих слів у чаті.
-     */
+    /** Лише автор і лише поки чат йому доступний; адмін винятку не має. */
     public boolean canModifyMessage(Long messageId) {
         User me = currentUser();
         if (me == null || messageId == null) return false;
@@ -196,7 +168,12 @@ public class AccessControlService {
         return canModifyMessage(messageId);
     }
 
-    // ---------- admin ----------
+    /** Лише двоє учасників доступного чату; адмін винятку не має. */
+    public boolean canPlayIsland(Long chatId) {
+        User me = currentUser();
+        if (me == null || chatId == null || isAdmin(me)) return false;
+        return canAccessChat(chatId);
+    }
 
     public boolean isCurrentUserAdmin() {
         return isAdmin(currentUser());

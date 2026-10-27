@@ -22,13 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-/**
- * Пуш подій у сокет.
- *
- * Правило одне й просте: подія йде ОБОМ учасникам чату і в тому вигляді, який
- * розбирає фронт — {type, payload}. Помилка тут виглядає як «повідомлення
- * дійшло одному, а другий сидить і не бачить».
- */
+/** Подія йде обом учасникам чату у форматі {type, payload}. */
 class RealtimeNotifiersTest {
 
     private final ObjectMapper json = new ObjectMapper().registerModule(new JavaTimeModule());
@@ -128,8 +122,6 @@ class RealtimeNotifiersTest {
         empty.setPayload(42);
         assertThat(json.writeValueAsString(empty)).isEqualTo("{\"type\":\"X\",\"payload\":42}");
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private static long eqLong(long value) {
         return org.mockito.ArgumentMatchers.eq(value);

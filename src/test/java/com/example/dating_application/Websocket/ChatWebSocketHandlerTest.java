@@ -23,23 +23,13 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Реєстр WebSocket-сесій і heartbeat.
- *
- * Найважливіше тут — прибирання МЕРТВИХ сесій. При обриві TCP без FIN (сон
- * ноутбука, зникнення Wi-Fi) сокет лишається «відкритим», afterConnectionClosed
- * не викликається, і без цієї логіки сесія висіла б у пам'яті вічно, а пуші
- * йшли б у нікуди.
- *
- * Сесії підроблені: справжній сокет тут не потрібен, потрібна поведінка реєстру.
- */
+/** Реєстр WebSocket-сесій і heartbeat, зокрема прибирання мертвих сесій. */
 class ChatWebSocketHandlerTest {
 
     private static final long USER = 42L;
 
     private ChatWebSocketHandler handler;
 
-    /** Довгий поріг: сесія за час тесту мовчазною не стане. */
     private static final long LONG_TIMEOUT = 70_000L;
 
     @BeforeEach
@@ -93,11 +83,10 @@ class ChatWebSocketHandlerTest {
     @Test
     @DisplayName("сесія, яка мовчить довше за поріг, вважається мертвою")
     void staleSessionIsClosedAndForgotten() throws Exception {
-        // Нульовий поріг: будь-яке мовчання вже задовге. Так перевіряємо саме
-        // прибирання, не чекаючи в тесті 70 реальних секунд.
+        // Нульовий поріг, щоб не чекати 70 секунд.
         handler = new ChatWebSocketHandler(0);
         FakeSession zombie = connect("zombie");
-        Thread.sleep(5); // щоб від'ємник «час мовчання» став більшим за нуль
+        Thread.sleep(5);
 
         handler.heartbeat();
 
@@ -242,10 +231,7 @@ class ChatWebSocketHandlerTest {
     void anonymousSessionIsNotRegistered() throws Exception {
         FakeSession anonymous = new FakeSession("anon", null);
 
-        // На прикладний ping відповідь усе одно піде — це нешкідливо й навіть
-        // зручно: така сесія існує лише мить, доки afterConnectionEstablished
-        // її не закриє. Важливо інше — вона не має опинитись у реєстрі й
-        // почати отримувати чужі пуші.
+        // Головне — така сесія не має потрапити в реєстр.
         handler.handleTextMessage(anonymous.asSession(), new TextMessage("{\"type\":\"PING\"}"));
         handler.handlePongMessage(anonymous.asSession(), new PongMessage());
 
@@ -268,8 +254,6 @@ class ChatWebSocketHandlerTest {
         assertThat(session.sentText()).isEmpty();
     }
 
-    // ── підробка сесії ───────────────────────────────────────────────────
-
     private FakeSession connect(String id) throws Exception {
         return connect(id, "jti-" + id);
     }
@@ -280,11 +264,6 @@ class ChatWebSocketHandlerTest {
         return session;
     }
 
-    /**
-     * Мінімальна підробка WebSocketSession: запам'ятовує надіслане й те, з яким
-     * статусом її закрили. Через mock(), бо інтерфейс великий, а потрібні лише
-     * кілька методів.
-     */
     private static final class FakeSession {
         private final String id;
         private final Map<String, Object> attributes = new HashMap<>();

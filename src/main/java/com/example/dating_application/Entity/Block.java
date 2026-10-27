@@ -4,17 +4,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-/**
- * Блокування одного дейтера іншим.
- *
- * Запис односторонній (хто кого заблокував), але ефект симетричний:
- * після блокування користувачі зникають один в одного зі стрічки,
- * не можуть лайкати, писати й бачити фото. Зняти блок може лише той,
- * хто його поставив.
- *
- * Не плутати з адмін-баном — той живе прапорцем isBlocked у {@link User}
- * і є постійним.
- */
+/** Блокування між дейтерами: запис односторонній, ефект симетричний. Адмін-бан — окремо, прапорець isBlocked у User. */
 @Entity
 @Table(
         name = "block",
@@ -29,12 +19,10 @@ public class Block {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long blockId;
 
-    /** Хто заблокував. */
     @ManyToOne
     @JoinColumn(name = "blocker_id", nullable = false)
     private User blocker;
 
-    /** Кого заблокували. */
     @ManyToOne
     @JoinColumn(name = "blocked_id", nullable = false)
     private User blocked;

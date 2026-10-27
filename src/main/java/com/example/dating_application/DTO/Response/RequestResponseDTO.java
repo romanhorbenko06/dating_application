@@ -13,18 +13,11 @@ public class    RequestResponseDTO {
     private String message;
     private RequestStatus status;
     private LocalDateTime createdAt;
-    /**
-     * Подробиці про ВІДПРАВНИКА симпатії. Потрібні списку «вас вподобали»:
-     * без них клієнт мусив би тягнути окрему анкету на кожен рядок.
-     */
+    /** Дані відправника для картки, щоб клієнт не тягнув анкету на кожен рядок. */
     private LocalDate fromUserDateOfBirth;
     private String fromUserCity;
-    /** Скільки фото має відправник. Самі фото до взаємності лишаються закритими. */
+    /** Самі фото до взаємності закриті. */
     private long fromUserPhotoCount;
-    /**
-     * Скільки тем збігається у відправника й отримувача. Величина симетрична,
-     * тож однаково правдива і для вхідних симпатій, і для надісланих.
-     */
     private long sharedTagCount;
 
     public RequestResponseDTO() {

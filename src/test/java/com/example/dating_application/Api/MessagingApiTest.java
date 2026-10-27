@@ -30,13 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Листування (UC-10, FR-17): надсилання, історія з курсором, редагування,
- * м'яке видалення, квитанції прочитання.
- *
- * Через API, бо правила розкидані між контролером (@PreAuthorize), сервісом
- * (подвійна перевірка учасника) і DTO — і саме стик між ними тут найцікавіший.
- */
+/** Листування (UC-10, FR-17): надсилання, курсор, редагування, видалення, прочитання. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -267,8 +261,6 @@ class MessagingApiTest {
                         .content("{\"chatId\":999999,\"content\":\"нікуди\"}"))
                 .andExpect(status().isForbidden());
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private long createMatch() throws Exception {
         mvc.perform(post("/api/requests/send")

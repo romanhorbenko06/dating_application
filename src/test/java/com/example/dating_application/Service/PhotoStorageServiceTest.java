@@ -12,13 +12,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Сховище фото на диску.
- *
- * Головне тут — захист від виходу за межі теки. Ім'я файлу приходить із БД,
- * але якщо туди колись потрапить «../../etc/passwd», сервіс має відмовити,
- * а не покірно прочитати чужий файл.
- */
+/** Сховище фото на диску, зокрема захист від виходу за межі теки. */
 class PhotoStorageServiceTest {
 
     @TempDir
@@ -105,7 +99,7 @@ class PhotoStorageServiceTest {
         service.delete(fileName);
         assertThat(Files.exists(tempDir.resolve(fileName))).isFalse();
 
-        service.delete(fileName); // повторно — без винятку
+        service.delete(fileName);
         service.delete("ніколи-не-існував.jpg");
     }
 
@@ -125,7 +119,6 @@ class PhotoStorageServiceTest {
     @Test
     @DisplayName("неможливість створити теку валить застосунок на старті, а не мовчить")
     void unusableDirectoryFailsFast() throws IOException {
-        // На місці майбутньої теки лежить ФАЙЛ — створити каталог не вийде
         Path occupied = tempDir.resolve("зайнято");
         Files.writeString(occupied, "не тека");
 
@@ -139,7 +132,6 @@ class PhotoStorageServiceTest {
     @DisplayName("збій читання з диска — це помилка сервера, і вона не мовчить")
     void unreadableFileIsAnError() throws IOException {
         PhotoStorageService service = storage();
-        // Замість файлу — тека з тим самим іменем: прочитати її як файл не можна
         Files.createDirectory(tempDir.resolve("насправді-тека.jpg"));
 
         assertThatThrownBy(() -> service.read("насправді-тека.jpg"))
@@ -165,7 +157,6 @@ class PhotoStorageServiceTest {
         String fileName = service.save(new byte[] {1}, ImageFormat.JPEG);
         byte[] original = service.read(fileName);
 
-        // імітуємо збіг імен: файл із таким іменем уже є
         assertThat(Files.exists(tempDir.resolve(fileName))).isTrue();
         assertThat(original).isEqualTo(new byte[] {1});
     }

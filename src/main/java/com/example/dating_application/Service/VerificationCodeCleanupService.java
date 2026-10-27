@@ -9,23 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-/**
- * Прибирає протухлі коди підтвердження.
- *
- * Без цього таблиця росте вічно: кожна незавершена реєстрація лишає рядок
- * назавжди, хоча після expiresAt код усе одно не приймається — /verify
- * перевіряє строк першим. Тобто рядки не просто зайві, вони мертві.
- *
- * Рядок містить не лише код, а й дані анкети, які проносяться через OTP-крок
- * (ім'я, стать, дата народження, місто, мета) — тому це ще й персональні дані,
- * які немає підстав зберігати після того, як код перестав діяти.
- */
+/** Прибирає протухлі коди підтвердження разом із даними анкети, що в них лежать. */
 @Service
 public class VerificationCodeCleanupService {
 
     private static final Logger logger = LoggerFactory.getLogger(VerificationCodeCleanupService.class);
 
-    /** Раз на годину: коди живуть 15 хвилин, частіше немає сенсу. */
     private static final long PURGE_INTERVAL_MS = 60 * 60 * 1000L;
 
     private final VerificationCodeRepository verificationCodeRepository;

@@ -17,14 +17,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Список чатів: видимість і посторінковість.
- *
- * Ключове, заради чого цей тест існує: фільтр «прибрати заблокованих» живе В САМОМУ
- * запиті. Якби він лишився в Java (як було до 10.09.2026), сторінку різали б ДО
- * відсіювання — і вона приходила б неповною, а частина чатів не потрапляла б
- * на жодну сторінку взагалі.
- */
+/** Список чатів: фільтр заблокованих має бути в самому запиті, щоб сторінки були повні. */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
@@ -145,8 +138,6 @@ class ChatQueryTest {
     @Test
     @DisplayName("фільтр працює ДО нарізки: перша сторінка лишається повною")
     void filterAppliesBeforeSlicing() {
-        // Три чати, один із заблокованою. Сторінка на два має віддати ДВА живі чати,
-        // а не «два мінус відсіяний».
         LocalDateTime now = LocalDateTime.now();
         for (int i = 0; i < 3; i++) {
             User companion = data.user("Живий " + i);

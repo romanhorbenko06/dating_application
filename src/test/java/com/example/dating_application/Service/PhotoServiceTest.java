@@ -30,11 +30,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Правила завантаження фото: ліміт на людину, головна світлина, відмови на
- * сміття. Обробку пікселів перевіряє ImageProcessingServiceTest — тут саме
- * рішення «приймати чи ні» й «що стає головним».
- */
+/** Ліміт фото, головна світлина, відмови на сміття. */
 @ExtendWith(MockitoExtension.class)
 class PhotoServiceTest {
 
@@ -207,8 +203,6 @@ class PhotoServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("User not found");
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private static byte[] jpeg() throws IOException {
         return image("jpg");

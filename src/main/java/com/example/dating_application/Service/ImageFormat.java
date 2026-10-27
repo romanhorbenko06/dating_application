@@ -1,8 +1,5 @@
 package com.example.dating_application.Service;
 
-/**
- * Підтримувані формати зображень.
- */
 public enum ImageFormat {
 
     JPEG("jpg", "image/jpeg"),
@@ -10,9 +7,7 @@ public enum ImageFormat {
     GIF("gif", "image/gif"),
     BMP("bmp", "image/bmp");
 
-    // WEBP свідомо НЕ підтримуємо: у стандартній JDK немає декодера (ImageIO.getReaderFormatNames()
-    // видає лише BMP/GIF/JPEG/PNG/TIFF/WBMP), а кожне фото ми декодуємо, щоб зрізати EXIF і зменшити.
-    // Приймати формат, який потім не зможемо обробити, — гірше, ніж чесно відмовити на вході.
+    // WEBP не підтримуємо: у JDK немає декодера, а кожне фото ми перекодовуємо.
 
     private final String extension;
     private final String contentType;
@@ -30,11 +25,6 @@ public enum ImageFormat {
         return contentType;
     }
 
-    /**
-     * Визначає формат за першими байтами файлу.
-     *
-     * @return формат або null, якщо це не підтримуване зображення
-     */
     public static ImageFormat detect(byte[] data) {
         if (data == null || data.length < 12) {
             return null;
@@ -61,7 +51,6 @@ public enum ImageFormat {
         return null;
     }
 
-    /** Формат за розширенням збереженого файлу (для віддачі правильного Content-Type). */
     public static ImageFormat byExtension(String extension) {
         if (extension == null) {
             return null;
@@ -75,7 +64,6 @@ public enum ImageFormat {
         return null;
     }
 
-    /** Список дозволених форматів для тексту помилки. */
     public static String allowed() {
         StringBuilder sb = new StringBuilder();
         for (ImageFormat format : values()) {

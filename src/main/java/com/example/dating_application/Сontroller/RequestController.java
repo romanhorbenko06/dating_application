@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 @Validated
 public class RequestController {
 
-    /** Сторінка за замовчуванням. Раніше списки віддавались цілком. */
     private static final int DEFAULT_PAGE_SIZE = 50;
 
     private final RequestService requestService;
@@ -52,11 +51,8 @@ public class RequestController {
         var result = requestService.send(currentUserId, dto);
 
         if (result.chat() != null) {
-            // Лайк був зустрічним і став метчем — обом іде сповіщення про взаємність
-            // (UC-08), а не про нову вхідну симпатію.
             notificationService.notifyNewMatch(result.chat());
         } else {
-            // Сповіщення адресату (FR-19.2) — після збереження лайку
             notificationService.notifyNewLike(result.request().getToUser(),
                     result.request().getFromUser());
         }
@@ -70,7 +66,6 @@ public class RequestController {
         Long currentUserId = getCurrentUserId();
         var chat = requestService.accept(requestId, currentUserId);
 
-        // Взаємна симпатія — сповіщаємо обох (UC-08)
         notificationService.notifyNewMatch(chat);
 
         Map<String, Object> response = new HashMap<>();
@@ -89,11 +84,6 @@ public class RequestController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Лічильник для анкети: скільки людей вподобали цього користувача за весь час.
-     * Окремий ендпоінт, а не довжина списку, бо список посторінковий — рахувати
-     * за ним означало б або занижувати, або тягнути всі записи заради числа.
-     */
     @GetMapping("/incoming/count")
     public ResponseEntity<Map<String, Long>> countIncomingLikes() {
         Long currentUserId = getCurrentUserId();

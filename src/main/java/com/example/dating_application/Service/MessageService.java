@@ -45,8 +45,6 @@ public class MessageService {
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new BusinessException("User not found"));
 
-        // Подвійна перевірка (як в решті сервісів): писати може лише учасник чату.
-        // @PreAuthorize у контролері — не єдиний бар'єр.
         boolean participant = chat.getUser1().getUserId().equals(senderId)
                 || chat.getUser2().getUserId().equals(senderId);
         if (!participant) {
@@ -63,13 +61,7 @@ public class MessageService {
         return messageRepository.save(msg);
     }
 
-    /**
-     * Сторінка історії чату: найсвіжіші `limit` повідомлень, або старіші за `beforeMessageId`
-     * (прокрутка вгору). Повертає у ХРОНОЛОГІЧНОМУ порядку — так їх і малює клієнт.
-     *
-     * Курсор, а не offset: чат поповнюється під час читання, і зі зсувом сторінки
-     * при прокрутці вгору повідомлення дублювались би або пропускались.
-     */
+    /** Курсор, а не offset: чат поповнюється під час читання. Повертає у хронологічному порядку. */
     public List<Message> getChatMessages(Long chatId, Long beforeMessageId, int limit) {
         Pageable page = PageRequest.of(0, limit);
 
@@ -83,10 +75,6 @@ public class MessageService {
         return chronological;
     }
 
-    /**
-     * Позначає прочитаними всі непрочитані повідомлення в чаті, адресовані reader'у
-     * (тобто надіслані співрозмовником). Повертає id позначених повідомлень.
-     */
     @Transactional
     public List<Long> markChatRead(Long chatId, Long readerId) {
         List<Message> unread =
@@ -99,13 +87,11 @@ public class MessageService {
         return unread.stream().map(Message::getMessageId).collect(Collectors.toList());
     }
 
-
     @Transactional
     public Message editMessage(Long messageId, Long editorId, String newContent) {
         Message msg = messageRepository.findById(messageId)
                 .orElseThrow(() -> new BusinessException("Message not found"));
 
-        // подвійна перевірка: @PreAuthorize у контролері — не єдиний бар'єр
         if (!msg.getSender().getUserId().equals(editorId)) {
             throw new AccessDeniedException("You can only edit your own messages");
         }
@@ -119,13 +105,11 @@ public class MessageService {
         return messageRepository.save(msg);
     }
 
-    /** Чи повідомлення вже видалене — контролеру, щоб не пушити подію двічі. */
     public boolean isDeleted(Long messageId) {
         return messageRepository.findById(messageId)
                 .map(m -> Boolean.TRUE.equals(m.getDeleted()))
                 .orElse(false);
     }
-
 
     @Transactional
     public Message deleteMessage(Long messageId, Long deleterId) {
@@ -136,12 +120,12 @@ public class MessageService {
             throw new AccessDeniedException("You can only delete your own messages");
         }
         if (Boolean.TRUE.equals(msg.getDeleted())) {
-            return msg; // вже видалене — нічого не робимо і не пушимо повторно
+            return msg;
         }
 
         msg.setDeleted(true);
         msg.setDeletedAt(LocalDateTime.now());
-        msg.setContent(null); // вміст прибираємо реально, а не ховаємо у відповіді
+        msg.setContent(null);
 
         return messageRepository.save(msg);
     }
@@ -160,4 +144,3 @@ public class MessageService {
         );
     }
 }
-

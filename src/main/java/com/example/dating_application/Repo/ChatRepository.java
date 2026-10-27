@@ -2,11 +2,14 @@ package com.example.dating_application.Repo;
 
 import com.example.dating_application.Entity.Chat;
 import org.springframework.data.domain.Pageable;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ChatRepository extends JpaRepository<Chat, Long> {
 
@@ -19,21 +22,12 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
     """)
     Chat findChatBetweenUsers(Long u1, Long u2);
 
-    /**
-     * Чати користувача, вже відфільтровані й упорядковані, — сторінкою.
-     *
-     * Фільтр СВІДОМО в запиті, а не в Java: якби сторінку брали до відсіювання
-     * заблокованих, у ній щоразу лишалося б менше рядків, ніж просив клієнт,
-     * а частина чатів взагалі не потрапила б на жодну сторінку.
-     *
-     * Умова написана двома дзеркальними гілками (я user1 / я user2) замість CASE:
-     * так видно, що саме перевіряється про співрозмовника — бан адміністратором
-     * і особисте блокування в БУДЬ-ЯКОМУ напрямку.
-     *
-     * Порядок — за часом останнього повідомлення, найсвіжіші зверху; чати без
-     * повідомлень ідуть у кінець. Це той самий порядок, який показує фронт,
-     * і він стабільний, тож сторінки не перемішуються між запитами.
-     */
+    /** SELECT ... FOR UPDATE: серіалізує дії над грою в одному чаті. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM Chat c WHERE c.chatId = :chatId")
+    Optional<Chat> findByIdForUpdate(@Param("chatId") Long chatId);
+
+    /** Фільтр у запиті, а не в Java, щоб сторінки були повні; найсвіжіші зверху, чати без повідомлень у кінці. */
     @Query("""
         SELECT c FROM Chat c
         WHERE (c.user1.userId = :meId
@@ -50,4 +44,3 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
     """)
     List<Chat> findVisibleChats(@Param("meId") Long meId, Pageable pageable);
 }
-

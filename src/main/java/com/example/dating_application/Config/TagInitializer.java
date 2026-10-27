@@ -11,11 +11,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Засіває фіксований каталог тегів (інтересів) при старті застосунку,
- * якщо таблиця тегів порожня. Користувачі обирають теги з цього списку —
- * створювати власні не можна.
- */
+/** Засіває фіксований каталог тегів, якщо таблиця порожня. */
 @Component
 @Order(1)
 public class TagInitializer implements CommandLineRunner {
@@ -30,43 +26,43 @@ public class TagInitializer implements CommandLineRunner {
 
     private static final List<String> TAGS = List.of(
             // Спорт та активність
-            "Football", "Basketball", "Tennis", "Running", "Cycling", "Swimming",
-            "Gym & Fitness", "Yoga", "Hiking", "Climbing", "Skiing", "Snowboarding",
-            "Surfing", "Martial Arts", "Boxing", "Dancing", "Skateboarding", "Golf",
-            "Volleyball", "Table Tennis", "Fishing", "Horse Riding", "Kayaking",
+            "Футбол", "Баскетбол", "Теніс", "Біг", "Велосипед", "Плавання",
+            "Спортзал і фітнес", "Йога", "Походи", "Скелелазіння", "Лижі", "Сноуборд",
+            "Серфінг", "Бойові мистецтва", "Бокс", "Танці", "Скейтборд", "Гольф",
+            "Волейбол", "Настільний теніс", "Риболовля", "Верхова їзда", "Каякінг",
 
             // Музика
-            "Rock", "Pop", "Hip-Hop", "Jazz", "Classical Music", "Electronic Music",
-            "Metal", "Indie", "K-Pop", "R&B", "Country Music", "Playing Guitar",
-            "Playing Piano", "Singing", "Concerts & Festivals", "Vinyl Records",
+            "Рок", "Поп", "Хіп-хоп", "Джаз", "Класична музика", "Електронна музика",
+            "Метал", "Інді", "К-поп", "Ритм-н-блюз", "Кантрі", "Гра на гітарі",
+            "Гра на фортепіано", "Спів", "Концерти та фестивалі", "Вінілові платівки",
 
             // Мистецтво та творчість
-            "Painting", "Drawing", "Photography", "Writing", "Poetry", "Sculpture",
-            "Graphic Design", "Filmmaking", "Theatre", "Crafts & DIY", "Knitting",
-            "Calligraphy", "Pottery",
+            "Живопис", "Малювання", "Фотографія", "Письменництво", "Поезія", "Скульптура",
+            "Графічний дизайн", "Відеозйомка", "Театр", "Рукоділля", "В’язання",
+            "Каліграфія", "Гончарство",
 
             // Кіно, книги, ігри
-            "Movies", "TV Series", "Anime", "Reading", "Fantasy Books", "Sci-Fi",
-            "Comics", "Board Games", "Video Games", "Chess", "Puzzles", "Tabletop RPG",
+            "Кіно", "Серіали", "Аніме", "Читання", "Фентезі", "Наукова фантастика",
+            "Комікси", "Настільні ігри", "Відеоігри", "Шахи", "Головоломки", "Настільні рольові ігри",
 
             // Їжа та напої
-            "Cooking", "Baking", "Coffee", "Tea", "Wine", "Craft Beer", "Vegetarian",
-            "Vegan", "Foodie", "BBQ", "Sushi", "Street Food",
+            "Кулінарія", "Випічка", "Кава", "Чай", "Вино", "Крафтове пиво", "Вегетаріанство",
+            "Веганство", "Гастрономія", "Барбекю", "Суші", "Вулична їжа",
 
             // Подорожі та природа
-            "Travel", "Backpacking", "Road Trips", "Camping", "Beaches", "Mountains",
-            "Nature", "Gardening", "Astronomy", "Bird Watching", "Road Cycling",
+            "Подорожі", "Бекпекінг", "Автоподорожі", "Кемпінг", "Пляжі", "Гори",
+            "Природа", "Садівництво", "Астрономія", "Спостереження за птахами", "Шосейний велоспорт",
 
             // Технології та навчання
-            "Programming", "Artificial Intelligence", "Gadgets", "Startups",
-            "Science", "Space", "History", "Philosophy", "Psychology", "Languages",
-            "Investing", "Cryptocurrency", "Robotics",
+            "Програмування", "Штучний інтелект", "Ґаджети", "Стартапи",
+            "Наука", "Космос", "Історія", "Філософія", "Психологія", "Іноземні мови",
+            "Інвестиції", "Криптовалюти", "Робототехніка",
 
             // Стиль життя
-            "Fashion", "Makeup", "Skincare", "Interior Design", "Minimalism",
-            "Meditation", "Volunteering", "Pets", "Dogs", "Cats", "Cars",
-            "Motorcycles", "Nightlife", "Wine Tasting", "Sustainability",
-            "Spirituality", "Politics", "Entrepreneurship"
+            "Мода", "Макіяж", "Догляд за шкірою", "Дизайн інтер’єру", "Мінімалізм",
+            "Медитація", "Волонтерство", "Домашні улюбленці", "Собаки", "Коти", "Автомобілі",
+            "Мотоцикли", "Нічне життя", "Дегустація вин", "Екологічність",
+            "Духовність", "Політика", "Підприємництво"
     );
 
     @Override

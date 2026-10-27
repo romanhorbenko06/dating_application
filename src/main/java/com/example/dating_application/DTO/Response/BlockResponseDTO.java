@@ -2,7 +2,6 @@ package com.example.dating_application.DTO.Response;
 
 import java.time.LocalDateTime;
 
-/** Запис зі списку «мої блокування». */
 public class BlockResponseDTO {
 
     private Long blockId;

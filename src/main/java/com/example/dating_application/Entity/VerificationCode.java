@@ -20,7 +20,7 @@ public class VerificationCode {
     @Column(nullable = false)
     private LocalDateTime expiresAt;
 
-    // Дані профілю, що очікують підтвердження (переносяться з register у verify)
+    // Дані анкети, що переносяться з register у verify
     private String name;
 
     @Enumerated(EnumType.STRING)

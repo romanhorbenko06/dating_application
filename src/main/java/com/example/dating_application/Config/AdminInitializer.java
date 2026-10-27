@@ -10,10 +10,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-/**
- * Створює обліковий запис адміністратора при старті застосунку,
- * якщо користувача з таким email ще немає.
- */
 @Component
 public class AdminInitializer implements CommandLineRunner {
 
@@ -33,14 +29,7 @@ public class AdminInitializer implements CommandLineRunner {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Пароль адміна не має значення за замовчуванням: у репозиторії лежав робочий
-     * admin12345, тобто адмінка будь-якого розгортання відкривалася відомим паролем.
-     *
-     * Якщо пароль не задано — адмін просто НЕ створюється. Створити його зі
-     * слабким чи порожнім паролем було б гірше за відсутність адміна: застосунок
-     * працює й без нього, недоступна лише модерація.
-     */
+    /** Без заданого пароля адмін не створюється. */
     @Override
     public void run(String... args) {
         if (adminPassword == null || adminPassword.isBlank() || adminPassword.startsWith("${")) {

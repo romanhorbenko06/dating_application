@@ -29,10 +29,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Симпатії (UC-08, UC-09) і блокування (UC-07) через API: списки, відмова,
- * пропуск, симетрія блокування.
- */
+/** Симпатії (UC-08, UC-09) і блокування (UC-07) через API. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -55,8 +52,6 @@ class RequestsAndBlocksApiTest {
         aliceToken = jwtUtil.generateToken(alice);
         bohdanToken = jwtUtil.generateToken(bohdan);
     }
-
-    // ── симпатії ─────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("надіслана симпатія бачиться в «надісланих», а вхідна — в «отриманих»")
@@ -141,8 +136,6 @@ class RequestsAndBlocksApiTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // ── блокування ───────────────────────────────────────────────────────
-
     @Test
     @DisplayName("блокування симетричне: анкети зникають в обох")
     void blockIsSymmetric() throws Exception {
@@ -180,12 +173,10 @@ class RequestsAndBlocksApiTest {
     void blockOperationsAreGuarded() throws Exception {
         block(aliceToken, bohdan.getUserId());
 
-        // Повторний виклик свідомо НЕ помилка: клієнт міг двічі натиснути,
-        // і другий рядок у базі з цього з'являтись не повинен
+        // Повторний виклик не помилка й не створює другий рядок.
         block(aliceToken, bohdan.getUserId());
         assertThat(getJson(aliceToken, "/api/blocks").size()).isEqualTo(1);
 
-        // А от зняти те, чого немає, — уже неоднозначність, і про неї кажемо прямо
         mvc.perform(delete("/api/blocks/" + newUser("Хтось").getUserId())
                         .header(HttpHeaders.AUTHORIZATION, bearer(aliceToken)))
                 .andExpect(status().isBadRequest());
@@ -222,8 +213,6 @@ class RequestsAndBlocksApiTest {
                         .content("{\"toUserId\":" + alice.getUserId() + "}"))
                 .andExpect(status().isBadRequest());
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private void like(String token, long toUserId) throws Exception {
         mvc.perform(post("/api/requests/send")

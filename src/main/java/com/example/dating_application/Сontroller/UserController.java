@@ -67,11 +67,6 @@ public class UserController {
         return ResponseEntity.ok(userService.toResponseDTO(updatedUser));
     }
 
-    /**
-     * Часткове оновлення анкети. Поля, яких немає в тілі, лишаються як були —
-     * на відміну від PUT вище, який замінює профіль цілком і затирає пропущене.
-     * Фронту слід користуватися саме цим ендпоінтом; PUT лишено для повної заміни.
-     */
     @PatchMapping("/{id}")
     @PreAuthorize("@accessControlService.canEditProfile(#id)")
     public ResponseEntity<UserResponseDTO> patchProfile(@PathVariable Long id,
@@ -116,14 +111,7 @@ public class UserController {
         return ResponseEntity.ok(userService.toPublicDTO(profile));
     }
 
-    /**
-     * Кілька наступних анкет одним запитом — для смуги «далі у стрічці».
-     *
-     * Це НЕ заміна {@code /next}: рішення (лайк чи пропуск) приймається лише по
-     * поточній анкеті, а список потрібен, щоб показати, хто йде за нею. Добір,
-     * фільтри й ранжування ті самі, тож перший елемент завжди дорівнює тому,
-     * що віддає {@code /next}.
-     */
+    /** Кілька наступних анкет для смуги «далі у стрічці»; перша завжди збігається з /next. */
     @GetMapping("/feed")
     public ResponseEntity<List<PublicProfileDTO>> getUpcoming(
             @RequestParam(required = false) com.example.dating_application.Entity.Gender gender,
@@ -158,5 +146,3 @@ public class UserController {
         return ResponseEntity.ok(profiles);
     }
 }
-
-

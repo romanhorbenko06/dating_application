@@ -14,7 +14,6 @@ public interface BlockRepository extends JpaRepository<Block, Long> {
 
     List<Block> findByBlockerUserIdOrderByCreatedAtDesc(Long blockerId);
 
-
     @Query("""
             SELECT COUNT(b) > 0 FROM Block b
             WHERE (b.blocker.userId = :userA AND b.blocked.userId = :userB)
@@ -29,6 +28,5 @@ public interface BlockRepository extends JpaRepository<Block, Long> {
             """)
     List<Long> findCounterpartIds(@Param("userId") Long userId);
 
-    /** Прибирання блоків при видаленні акаунта (інакше видалення впаде на FK). */
     void deleteByBlockerUserIdOrBlockedUserId(Long blockerId, Long blockedId);
 }

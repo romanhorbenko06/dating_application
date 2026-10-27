@@ -9,8 +9,7 @@ public class LoginRequest {
     @Email(message = "Email format is invalid")
     public String email;
 
-    // На вході в логін довжину НЕ перевіряємо: вимоги до пароля можуть змінитися,
-    // а старі акаунти мають лишатися робочими. Достатньо, щоб поле було заповнене.
+    // Довжину не перевіряємо, щоб старі акаунти лишались робочими при зміні вимог.
     @NotBlank(message = "Password is required")
     public String password;
 

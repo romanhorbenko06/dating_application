@@ -15,14 +15,7 @@ import java.io.IOException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Обробка завантаженого фото.
- *
- * Три речі, які мають статись із чужим файлом ОБОВ'ЯЗКОВО: метадані зрізані
- * (у EXIF бувають GPS-координати з місцем зйомки), розмір обмежений, формат
- * на виході один. Перше — питання приватності, і мовчазна регресія тут
- * означала б, що застосунок роздає координати домівки разом із фото.
- */
+/** Обробка фото: метадані зрізані, розмір обмежений, на виході JPEG. */
 class ImageProcessingServiceTest {
 
     private static final int MAX_DIMENSION = 1080;
@@ -82,8 +75,7 @@ class ImageProcessingServiceTest {
     @Test
     @DisplayName("поворот із EXIF застосовується до самих пікселів")
     void appliesRotationToPixels() throws Exception {
-        // Орієнтація 6 = «повернути на 90°»: широке фото має стати високим,
-        // бо переглядачі на боці клієнта тега більше не побачать — його зрізано.
+        // Орієнтація 6 — поворот на 90°: широке фото має стати високим.
         byte[] rotated = jpegWithExifOrientation(6);
 
         BufferedImage result = decode(service.process(rotated, ImageFormat.JPEG));
@@ -96,9 +88,7 @@ class ImageProcessingServiceTest {
     @Test
     @DisplayName("усі вісім варіантів орієнтації обробляються без падінь")
     void handlesEveryOrientation() throws Exception {
-        // 1 — без повороту; 2,4,5,7 — із дзеркаленням; 3 — 180°; 6,8 — на чверть.
-        // Поворот на чверть міняє сторони місцями, решта — ні. Камери ставлять
-        // будь-яке з цих значень, і жодне не має ні впасти, ні перекосити фото.
+        // Поворот на чверть (5..8) міняє сторони місцями, решта — ні.
         for (int orientation = 1; orientation <= 8; orientation++) {
             BufferedImage result = decode(service.process(
                     jpegWithExifOrientation(orientation), ImageFormat.JPEG));
@@ -157,16 +147,13 @@ class ImageProcessingServiceTest {
     @Test
     @DisplayName("надто велике за кількістю пікселів фото не декодується")
     void rejectsTooManyPixels() throws Exception {
-        // Межа свідомо мізерна: декодувати справжню стомегапіксельну картинку
-        // в тесті означало б з'їсти пам'ять саме так, як цей захист і запобігає.
+        // Межа мізерна, щоб не декодувати в тесті справжню велику картинку.
         var strict = new ImageProcessingService(MAX_DIMENSION, 0.85f, 100L);
         byte[] image = image(200, 200, "jpg");
 
         assertThatThrownBy(() -> strict.process(image, ImageFormat.JPEG))
                 .isInstanceOf(BusinessException.class);
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private static byte[] image(int width, int height, String format) throws IOException {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -180,7 +167,6 @@ class ImageProcessingServiceTest {
         return out.toByteArray();
     }
 
-    /** JPEG із вклеєним APP1/EXIF, де задано тег орієнтації. */
     private static byte[] jpegWithExifOrientation(int orientation) throws IOException {
         byte[] plain = image(400, 200, "jpg");
 

@@ -88,14 +88,12 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationErrors(
             MethodArgumentNotValidException ex, WebRequest request) {
 
         Map<String, String> fieldErrors = new LinkedHashMap<>();
         for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
-            // за наявності кількох помилок на полі лишаємо першу — її й показує форма
             fieldErrors.putIfAbsent(fe.getField(), fe.getDefaultMessage());
         }
         ex.getBindingResult().getGlobalErrors()
@@ -111,7 +109,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    /** Порушення обмежень на параметрах запиту / шляху (@Validated на контролері). */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleConstraintViolation(
             ConstraintViolationException ex, WebRequest request) {
@@ -119,7 +116,6 @@ public class GlobalExceptionHandler {
         Map<String, String> fieldErrors = new LinkedHashMap<>();
         for (ConstraintViolation<?> v : ex.getConstraintViolations()) {
             String path = v.getPropertyPath().toString();
-            // "getNextProfile.minAge" → "minAge"
             String field = path.contains(".") ? path.substring(path.lastIndexOf('.') + 1) : path;
             fieldErrors.putIfAbsent(field, v.getMessage());
         }
@@ -147,7 +143,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Map<String, Object>> handleUploadTooLarge(
             MaxUploadSizeExceededException ex, WebRequest request) {
@@ -161,7 +156,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.PAYLOAD_TOO_LARGE);
     }
 
-    /** У multipart-запиті немає обов'язкової частини (наприклад, поля "file"). */
     @ExceptionHandler(MissingServletRequestPartException.class)
     public ResponseEntity<Map<String, Object>> handleMissingPart(
             MissingServletRequestPartException ex, WebRequest request) {
@@ -188,7 +182,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.METHOD_NOT_ALLOWED);
     }
 
-
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<Map<String, Object>> handleUnsupportedMediaType(
             HttpMediaTypeNotSupportedException ex, WebRequest request) {
@@ -203,14 +196,12 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
-
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
     public ResponseEntity<Void> handleNotAcceptable(
             HttpMediaTypeNotAcceptableException ex, WebRequest request) {
 
         return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
     }
-
 
     @ExceptionHandler(ServletRequestBindingException.class)
     public ResponseEntity<Map<String, Object>> handleBindingException(
@@ -251,7 +242,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    /** Порушення бізнес-правила — єдиний випадок, коли текст помилки віддається клієнту. */
+    /** Єдиний випадок, коли текст помилки віддається клієнту. */
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Map<String, Object>> handleBusinessException(
             BusinessException ex, WebRequest request) {
@@ -264,7 +255,6 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
-
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(

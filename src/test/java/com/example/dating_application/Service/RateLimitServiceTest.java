@@ -5,10 +5,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Захист від перебору. Без Spring: сервіс тримає лічильники в пам'яті й
- * залежить лише від довжини вікна, тож піднімати контекст немає сенсу.
- */
 class RateLimitServiceTest {
 
     private static final String KEY = "login:test@example.com";
@@ -72,8 +68,7 @@ class RateLimitServiceTest {
     @Test
     @DisplayName("після закінчення вікна блокування знімається")
     void windowExpiresAndCounterStartsOver() {
-        // Нульове вікно: перша ж перевірка бачить його протухлим — так перевіряємо
-        // саме закінчення строку, не чекаючи в тесті 15 реальних хвилин.
+        // Нульове вікно, щоб не чекати 15 хвилин.
         var service = new RateLimitService(0);
         service.recordFailure(KEY);
         service.recordFailure(KEY);

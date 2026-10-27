@@ -21,13 +21,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Фотографії профілю.
- *
- * Розподіл обов'язків: цей сервіс відповідає за ПРАВА і записи в БД,
- * {@link PhotoStorageService} — за байти на диску. Ім'я файлу — єдине, що їх
- * пов'язує, і воно ніколи не виходить назовні через API.
- */
+/** Права й записи в БД; байти на диску — у {@link PhotoStorageService}. */
 @Service
 public class PhotoService {
 
@@ -57,13 +51,7 @@ public class PhotoService {
         return photoRepository.findByUserUserIdOrderByIsMainDescPhotoIdAsc(userId);
     }
 
-    /**
-     * Завантаження фото: перевіряємо формат за сигнатурою, кладемо байти на диск,
-     * зберігаємо в БД лише ім'я файлу.
-     *
-     * Перше фото автоматично стає головним — інакше профіль без явного вибору
-     * лишався б без аватарки.
-     */
+    /** Перше фото автоматично стає головним. */
     @Transactional
     public Photo addPhoto(Long userId, byte[] data, Boolean isMain) {
         if (data == null || data.length == 0) {
@@ -83,8 +71,7 @@ public class PhotoService {
             throw new BusinessException("Photo limit reached (max " + maxPhotosPerUser + ")");
         }
 
-        // На диск лягає НЕ те, що надіслав клієнт: метадані зрізані (там бувають GPS-координати),
-        // поворот застосований до пікселів, розмір обмежений. Формат на виході завжди один.
+        // Метадані зрізані, поворот застосований, розмір обмежений.
         byte[] processed = imageProcessingService.process(data, format);
         String fileName = photoStorageService.save(processed, ImageProcessingService.OUTPUT_FORMAT);
 
@@ -101,10 +88,7 @@ public class PhotoService {
         return photoRepository.save(photo);
     }
 
-    /**
-     * Видалення: спершу запис у БД, потім файл. Якщо видалили головне фото —
-     * головним стає наступне, щоб профіль не лишився без аватарки.
-     */
+    /** Якщо видалили головне фото, головним стає наступне. */
     @Transactional
     public void deletePhoto(Long photoId, Long userId) {
         Photo photo = photoRepository.findById(photoId)
@@ -153,30 +137,25 @@ public class PhotoService {
     }
 
     public boolean canViewPhotos(Long viewerId, Long targetUserId) {
-        // Власник завжди бачить свої фото
         if (viewerId.equals(targetUserId)) {
             return true;
         }
 
-        // Адміністратор (глядач) бачить будь-чиї фото
         User viewer = userRepository.findById(viewerId).orElse(null);
         if (viewer != null && viewer.getRole() == Role.ADMIN) {
             return true;
         }
 
-        // Забанений адміном акаунт зникає з поля зору повністю — як профіль і чат
         User target = userRepository.findById(targetUserId).orElse(null);
         if (target == null || Boolean.TRUE.equals(target.getBlocked())) {
             return false;
         }
 
-        // Блок у будь-якому напрямку скасовує доступ до фото навіть після метчу
         if (blockRepository.existsBetween(viewerId, targetUserId)) {
             return false;
         }
 
-        // Метч = прийнятий лайк у БУДЬ-ЯКОМУ напрямку між двома користувачами.
-        // (у цій моделі лайк A→B, який B прийняв, дає один ACCEPTED-запис)
+        // Метч — прийнятий лайк у будь-якому напрямку.
         boolean matched =
                 requestRepository.findByFromUserUserIdAndToUserUserIdAndStatus(
                         viewerId, targetUserId, RequestStatus.ACCEPTED).isPresent()
@@ -194,11 +173,7 @@ public class PhotoService {
         return List.of();
     }
 
-    /**
-     * Пакетна видача: один запит у БД по імена файлів, одне читання пачки з диска,
-     * на виході — готові картинки. Без метчу повертається порожній список
-     * (а не 403): для стрічки це нормальний стан «фото ще закриті».
-     */
+    /** Без метчу — порожній список, а не 403: для стрічки це нормальний стан. */
     @Transactional(readOnly = true)
     public List<PhotoContentDTO> getAccessiblePhotoContents(Long viewerId, Long targetUserId) {
         List<Photo> photos = getAccessiblePhotos(viewerId, targetUserId);
@@ -213,7 +188,7 @@ public class PhotoService {
         for (Photo photo : photos) {
             byte[] data = files.get(photo.getFileName());
             if (data == null) {
-                continue; // файл загубився на диску — решту фото все одно віддаємо
+                continue;
             }
             String contentType = contentTypeOf(photo);
             result.add(new PhotoContentDTO(
@@ -226,10 +201,7 @@ public class PhotoService {
         return result;
     }
 
-    /**
-     * Одне фото сирими байтами. На відміну від пакетної видачі, тут закритий
-     * доступ — це саме 403: клієнт просив конкретний файл і має знати, що йому відмовлено.
-     */
+    /** На відміну від пакетної видачі, тут закритий доступ — це 403. */
     @Transactional(readOnly = true)
     public PhotoBinary getPhotoBinary(Long viewerId, Long photoId) {
         Photo photo = photoRepository.findById(photoId)
@@ -252,7 +224,6 @@ public class PhotoService {
         );
     }
 
-    /** Тип визначаємо за розширенням збереженого файлу — воно проставлене за сигнатурою при завантаженні. */
     private String contentTypeOf(Photo photo) {
         String fileName = photo.getFileName();
         int dot = fileName == null ? -1 : fileName.lastIndexOf('.');

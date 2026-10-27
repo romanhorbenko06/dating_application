@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 @Validated
 public class ChatController {
 
-    /** Стільки чатів віддається за замовчуванням, якщо клієнт не просив інакше. */
     private static final int DEFAULT_PAGE_SIZE = 50;
 
     private static final int DEFAULT_MESSAGE_LIMIT = 50;
@@ -103,15 +102,12 @@ public class ChatController {
     public ResponseEntity<MessageResponseDTO> sendMessage(@Valid @RequestBody SendMessageDTO dto) {
         Long currentUserId = getCurrentUserId();
 
-        // 1. Зберігаємо в БД (джерело правди)
         var message = messageService.sendMessage(currentUserId, dto);
         MessageResponseDTO responseDTO = messageService.toResponseDTO(message);
 
-        // 2. Пушимо обом учасникам через WebSocket (наживо)
         chatRealtimeNotifier.notifyNewMessage(message.getChat(), responseDTO);
 
-        // 3. Запис у центр сповіщень адресата (FR-19.3): пуш побачить лише той,
-        //    хто зараз онлайн, а сповіщення має дочекатися й офлайнового
+        // Центр сповіщень — для адресата, що зараз офлайн.
         notificationService.notifyNewMessage(message.getChat(), message.getSender());
 
         return ResponseEntity.ok(responseDTO);
@@ -140,7 +136,6 @@ public class ChatController {
         var message = messageService.deleteMessage(messageId, currentUserId);
         MessageResponseDTO responseDTO = messageService.toResponseDTO(message);
 
-        // повторне видалення нічого не міняє — і пуш не шлемо
         if (!wasDeleted) {
             chatRealtimeNotifier.notifyMessageDeleted(message.getChat(), responseDTO);
         }

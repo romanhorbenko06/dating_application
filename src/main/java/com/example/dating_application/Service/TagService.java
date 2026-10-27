@@ -39,7 +39,6 @@ public class TagService {
                 .collect(Collectors.toList());
     }
 
-    /** Додає тег користувачу; ідемпотентно (повторне додавання без ефекту). */
     public void addTagToUser(Long userId, Long tagId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("User not found"));

@@ -10,13 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-
 @Service
 public class TokenRevocationService {
 
     private static final Logger logger = LoggerFactory.getLogger(TokenRevocationService.class);
 
-    /** Раз на годину — частіше немає сенсу, строк життя токена теж година. */
     private static final long PURGE_INTERVAL_MS = 60 * 60 * 1000L;
 
     private final RevokedTokenRepository revokedTokenRepository;
@@ -25,7 +23,6 @@ public class TokenRevocationService {
         this.revokedTokenRepository = revokedTokenRepository;
     }
 
-    /** Ідемпотентно: повторний вихід із тим самим токеном перезапише той самий рядок. */
     public void revoke(String jti, Long userId, LocalDateTime expiresAt) {
         RevokedToken revoked = new RevokedToken();
         revoked.setJti(jti);
@@ -35,18 +32,11 @@ public class TokenRevocationService {
         revokedTokenRepository.save(revoked);
     }
 
-    /**
-     * Токени, випущені до появи цієї функції, не мають jti — вважаємо їх чинними,
-     * бо відкликати їх немає за чим. Актуально лише для вже виданих токенів.
-     */
+    /** Старі токени без jti вважаємо чинними. */
     public boolean isRevoked(String jti) {
         return jti != null && revokedTokenRepository.existsById(jti);
     }
 
-    /**
-     * Без прибирання таблиця росла б вічно: кожен вихід — рядок назавжди,
-     * хоча після expiration токен недійсний і без чорного списку.
-     */
     @Scheduled(fixedDelay = PURGE_INTERVAL_MS, initialDelay = PURGE_INTERVAL_MS)
     @Transactional
     public void purgeExpired() {

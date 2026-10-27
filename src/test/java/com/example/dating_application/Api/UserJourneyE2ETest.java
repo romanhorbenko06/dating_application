@@ -22,17 +22,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Вершина піраміди: шлях користувача цілком, від порожнього місця до переписки.
- *
- * Таких тестів свідомо мало — вони найдорожчі й при падінні кажуть лише «щось
- * зламалось», не показуючи де. Їхня цінність в іншому: вони єдині перевіряють,
- * що кроки СТИКУЮТЬСЯ між собою — реєстрація віддає те, що очікує підтвердження,
- * підтвердження створює те, з чим працює вхід, і так далі.
- *
- * Код підтвердження береться з БД, а не з листа: пошта в тестах вимкнена, а
- * перевіряємо ми потік, а не SMTP.
- */
+/** Наскрізний шлях користувача від реєстрації до переписки; код береться з БД. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -56,11 +46,9 @@ class UserJourneyE2ETest {
         long aliceId = myId(aliceToken);
         long bohdanId = myId(bohdanToken);
 
-        // Богдан вподобав Аліну — чату ще немає
         send(bohdanToken, aliceId);
         assertThat(chats(aliceToken).size()).as("до взаємності чат не створюється").isZero();
 
-        // Аліна прийняла — з'явився метч і чат
         long requestId = incoming(aliceToken).get(0).get("requestId").asLong();
         MvcResult accepted = mvc.perform(post("/api/requests/" + requestId + "/accept")
                         .header(HttpHeaders.AUTHORIZATION, bearer(aliceToken)))
@@ -71,7 +59,6 @@ class UserJourneyE2ETest {
         assertThat(chats(aliceToken).size()).isEqualTo(1);
         assertThat(chats(bohdanToken).size()).as("чат бачать обидва").isEqualTo(1);
 
-        // Переписка
         mvc.perform(post("/api/chats/messages")
                         .header(HttpHeaders.AUTHORIZATION, bearer(aliceToken))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -83,7 +70,6 @@ class UserJourneyE2ETest {
         assertThat(messages.get(0).get("content").asText()).isEqualTo("Привіт!");
         assertThat(messages.get(0).get("senderId").asLong()).isEqualTo(aliceId);
 
-        // Лічильник в анкеті бачить цю симпатію
         JsonNode count = getJson(aliceToken, "/api/requests/incoming/count");
         assertThat(count.get("count").asInt()).isEqualTo(1);
 
@@ -126,7 +112,6 @@ class UserJourneyE2ETest {
     void bruteForceHitsRateLimit() throws Exception {
         String email = verifyAndRegisterOnly("Жертва перебору");
 
-        // П'ять невдалих спроб дозволені, шоста — вже ні
         for (int attempt = 1; attempt <= 5; attempt++) {
             mvc.perform(post("/api/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -145,7 +130,7 @@ class UserJourneyE2ETest {
                 .isPositive();
         assertThat(limited.getResponse().getHeader("Retry-After")).isNotNull();
 
-        // І навіть з ПРАВИЛЬНИМ паролем ліміт тримає — інакше він нічого не вартий
+        // Навіть із правильним паролем ліміт тримає.
         mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + email + "\",\"password\":\"" + PASSWORD + "\"}"))
@@ -174,9 +159,6 @@ class UserJourneyE2ETest {
         assertThat(chats(bohdanToken).size()).as("і в того, кого заблокували").isZero();
     }
 
-    // ── кроки сценарію ───────────────────────────────────────────────────
-
-    /** Крок 1: заявка на реєстрацію. Повертає email, під яким вона подана. */
     private String register(String name) throws Exception {
         String email = UUID.randomUUID().toString().substring(0, 8) + "@test.local";
         mvc.perform(post("/api/auth/register")
@@ -189,7 +171,6 @@ class UserJourneyE2ETest {
         return email;
     }
 
-    /** Кроки 2–3: підтвердження кодом і вхід. Повертає токен без префікса. */
     private String verifyAndLogin(String email) throws Exception {
         String code = verificationCodes.findByEmail(email).orElseThrow().getCode();
 
@@ -207,7 +188,6 @@ class UserJourneyE2ETest {
         return body(login).get("token").asText().replace("Bearer ", "");
     }
 
-    /** Той самий шлях, але без входу: потрібен там, де вхід і є предметом тесту. */
     private String verifyAndRegisterOnly(String name) throws Exception {
         String email = register(name);
         String code = verificationCodes.findByEmail(email).orElseThrow().getCode();
@@ -225,8 +205,6 @@ class UserJourneyE2ETest {
                         .content("{\"toUserId\":" + toUserId + "}"))
                 .andExpect(status().isOk());
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private static String verifyBody(String email, String code) {
         return """
@@ -257,7 +235,6 @@ class UserJourneyE2ETest {
         return json.readTree(result.getResponse().getContentAsString());
     }
 
-    /** Невдалий вхід — 401 або 403 залежно від причини; тесту важливо лише «не пустило». */
     private static ResultMatcher notOk() {
         return result -> assertThat(result.getResponse().getStatus())
                 .as("вхід не мав пройти")

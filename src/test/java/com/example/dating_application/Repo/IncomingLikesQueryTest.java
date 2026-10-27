@@ -17,11 +17,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Вхідні симпатії: список тих, хто ЧЕКАЄ відповіді, і накопичувальний лічильник
- * «вподобали вас». Це дві різні величини, і плутанина між ними 10.09.2026 давала
- * нуль в анкеті користувача, у якого симпатії були, просто вже розібрані.
- */
+/** Список тих, хто чекає відповіді, і накопичувальний лічильник «вподобали вас» — різні величини. */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")

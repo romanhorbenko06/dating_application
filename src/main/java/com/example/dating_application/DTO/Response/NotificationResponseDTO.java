@@ -4,7 +4,6 @@ import com.example.dating_application.Entity.NotificationType;
 
 import java.time.LocalDateTime;
 
-
 public class NotificationResponseDTO {
 
     private Long notificationId;
@@ -12,7 +11,6 @@ public class NotificationResponseDTO {
     private Long actorId;
     private String actorName;
     private Long chatId;
-    /** Скільки повідомлень згорнуто (для NEW_MESSAGE); для решти типів 1. */
     private Integer messageCount;
     private Boolean isRead;
     private LocalDateTime createdAt;

@@ -2,7 +2,6 @@ package com.example.dating_application.DTO.Response;
 
 import java.time.LocalDateTime;
 
-/** Забанений адміністратором акаунт — віддається лише в адмін-панель. */
 public class BlockedUserDTO {
 
     private Long userId;

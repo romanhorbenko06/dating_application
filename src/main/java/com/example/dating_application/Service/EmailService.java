@@ -20,28 +20,22 @@ public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
-    /** Скільки живе код підтвердження — має збігатися зі строком у AuthController. */
+    /** Має збігатися зі строком у AuthController. */
     private static final int CODE_TTL_MINUTES = 15;
 
-    // ThreadLocalRandom/Random передбачувані: за кількома виданими кодами
-    // обчислюються наступні. Для OTP це діра, тож лише криптографічний генератор.
+    // Random передбачуваний, для OTP лише криптографічний генератор.
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final JavaMailSender mailSender;
 
-    /** false — код друкується в консоль (розробка без SMTP), true — реально надсилається лист. */
+    /** false — код друкується в консоль замість листа. */
     private final boolean mailEnabled;
 
-    /** Адреса у From. Gmail усе одно перепише її на власника ящика, тож тримаємо рівною логіну. */
+    /** Gmail усе одно перепише From на власника ящика. */
     private final String from;
 
-    /** Куди веде кнопка в листі. */
     private final String frontendUrl;
 
-    /**
-     * Розмітка листа читається з ресурсу ОДИН раз при старті: файл незмінний,
-     * а лізти на диск на кожну реєстрацію немає сенсу.
-     */
     private final String htmlTemplate;
 
     public EmailService(JavaMailSender mailSender,
@@ -57,10 +51,7 @@ public class EmailService {
                 : frontendUrl;
         this.htmlTemplate = readTemplate();
 
-        // Падаємо на старті, а не мовчки при першій реєстрації. Без цієї перевірки
-        // порожній логін/пароль дає найгірший сценарій: застосунок працює, код у
-        // консоль більше НЕ друкується (пошта ж «увімкнена»), а лист не доходить —
-        // і зареєструватися неможливо, поки хтось не зазирне в лог сервера.
+        // Падаємо на старті: інакше код не друкується в консоль, а лист не доходить.
         if (mailEnabled && (from.isBlank() || password.isBlank())) {
             throw new IllegalStateException(
                     "app.mail.enabled=true, але не задано spring.mail.username і/або "
@@ -80,14 +71,7 @@ public class EmailService {
         return String.format("%06d", RANDOM.nextInt(1_000_000));
     }
 
-    /**
-     * Надсилає код підтвердження.
-     *
-     * Асинхронно і свідомо без прокидання винятку: SMTP відповідає 1–3 секунди,
-     * і реєстрація не повинна ні чекати на нього, ні падати, якщо пошта недоступна.
-     * Запис VerificationCode на цей момент уже збережений — користувач може
-     * повторити реєстрацію тим самим email і отримати новий код.
-     */
+    /** Асинхронно й без прокидання винятку: реєстрація не чекає на SMTP і не падає через нього. */
     @Async("mailExecutor")
     public void sendVerificationEmail(String email, String code) {
         if (!mailEnabled) {
@@ -97,9 +81,7 @@ public class EmailService {
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            // true — multipart: у лист кладемо ОБИДВІ версії, текстову й HTML.
-            // Поштовик показує ту, яку вміє; текстова також рятує в режимі
-            // «показувати листи як текст» і трохи допомагає не потрапити в спам.
+            // multipart: текстова й HTML-версії.
             MimeMessageHelper helper = new MimeMessageHelper(
                     message, true, StandardCharsets.UTF_8.name());
 
@@ -111,7 +93,6 @@ public class EmailService {
             mailSender.send(message);
             logger.info("Код підтвердження надіслано на {}", mask(email));
         } catch (Exception e) {
-            // Сам код НЕ логуємо: лог-файл не місце для чинного OTP.
             logger.error("Не вдалося надіслати код підтвердження на {}: {}",
                     mask(email), e.getMessage());
         }
@@ -135,10 +116,6 @@ public class EmailService {
                 .replace("{{VERIFY_URL}}", frontendUrl + "/verify");
     }
 
-    /**
-     * Шаблон обов'язковий: якщо файл зник із зібраного jar, краще впасти на старті,
-     * ніж місяцями розсилати листи з порожнім тілом.
-     */
     private static String readTemplate() {
         try (var in = new ClassPathResource("mail/verification-email.html").getInputStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
@@ -162,7 +139,6 @@ public class EmailService {
                 """, email, code, CODE_TTL_MINUTES);
     }
 
-    /** t***@example.com — щоб лог не був готовою базою адрес. */
     private String mask(String email) {
         int at = email.indexOf('@');
         if (at <= 1) {

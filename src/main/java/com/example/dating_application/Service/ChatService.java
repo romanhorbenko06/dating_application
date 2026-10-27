@@ -34,7 +34,6 @@ public class ChatService {
             throw new EntityExistsException("Cannot create chat with yourself");
         }
 
-        // перевірка, чи чат вже існує
         Chat existing = chatRepository
                 .findChatBetweenUsers(user1Id, user2Id);
 
@@ -54,13 +53,6 @@ public class ChatService {
         return chatRepository.save(chat);
     }
 
-
-
-    /**
-     * Чати користувача. Чати зі співрозмовниками, з якими є блок (у будь-якому
-     * напрямку) або яких забанив адміністратор, зі списку зникають —
-     * доступ до них закриває також AccessControlService.canAccessChat.
-     */
     public List<Chat> getUserChats(Long userId, int page, int size) {
         return chatRepository.findVisibleChats(userId, PageRequest.of(page, size));
     }
@@ -83,4 +75,3 @@ public class ChatService {
         );
     }
 }
-

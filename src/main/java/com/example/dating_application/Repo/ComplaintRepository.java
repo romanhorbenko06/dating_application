@@ -9,16 +9,13 @@ import java.util.List;
 
 public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
 
-    // Скрізь свіжі — першими: адмін розбирає чергу згори
     List<Complaint> findAllByOrderByCreatedAtDesc();
 
     List<Complaint> findByStatusOrderByCreatedAtDesc(ComplaintStatus status);
 
     List<Complaint> findByReportedUserUserIdOrderByCreatedAtDesc(Long userId);
 
-    // Сторінкові варіанти тих самих запитів. Друге поле сортування (complainId)
-    // потрібне для стабільного порядку: createdAt у двох скарг може збігтися,
-    // і тоді запис міг би повторитись на сусідніх сторінках або зникнути між ними.
+    // complainId — для стабільного порядку між сторінками.
     List<Complaint> findAllByOrderByCreatedAtDescComplainIdDesc(Pageable pageable);
 
     List<Complaint> findByStatusOrderByCreatedAtDescComplainIdDesc(ComplaintStatus status, Pageable pageable);

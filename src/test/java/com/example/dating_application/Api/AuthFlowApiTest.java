@@ -27,13 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Межові випадки реєстрації та входу (UC-01, UC-02, FR-5).
- *
- * Щасливий шлях перевіряє UserJourneyE2ETest — тут усе, що йде не так:
- * повторна реєстрація, протухлий код, підтвердження без заявки, вихід
- * із зіпсованим заголовком.
- */
+/** Межові випадки реєстрації та входу (UC-01, UC-02, FR-5). */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -43,8 +37,7 @@ class AuthFlowApiTest {
 
     @org.junit.jupiter.api.BeforeEach
     void stubCodeGeneration() {
-        // За замовчуванням пошта поводиться як справжня: щоразу видає НОВИЙ код
-        // (однаковий ламав би перевірку «надіслати ще раз»)
+        // Щоразу новий код, інакше не перевірити «надіслати ще раз».
         java.util.concurrent.atomic.AtomicInteger counter = new java.util.concurrent.atomic.AtomicInteger(100000);
         org.mockito.Mockito.lenient().when(emailService.generateVerificationCode())
                 .thenAnswer(invocation -> String.valueOf(counter.incrementAndGet()));
@@ -55,14 +48,11 @@ class AuthFlowApiTest {
     @Autowired private VerificationCodeRepository verificationCodes;
     @Autowired private UserRepository userRepository;
 
-    /** Підмінюємо пошту, щоб змусити внутрішній збій там, де його інакше не влаштувати. */
     @MockitoBean private EmailService emailService;
 
     @Test
     @DisplayName("внутрішній збій не виносить своїх подробиць клієнту")
     void internalFailureDoesNotLeakDetails() throws Exception {
-        // Імітуємо збій усередині: у відповіді не має бути ані тексту винятку,
-        // ані назв класів — це та сама вимога, яку тримає GlobalExceptionHandler.
         when(emailService.generateVerificationCode())
                 .thenThrow(new IllegalStateException(
                         "HikariPool-1 connection timeout at UserRepository.save"));
@@ -217,8 +207,6 @@ class AuthFlowApiTest {
                         .content("{\"email\":\"" + email + "\",\"password\":\"інший\"}"))
                 .andExpect(result -> assertThat(result.getResponse().getStatus()).isGreaterThanOrEqualTo(400));
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private String register() throws Exception {
         return register(UUID.randomUUID().toString().substring(0, 8) + "@test.local");

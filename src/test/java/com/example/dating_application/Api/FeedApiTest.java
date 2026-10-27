@@ -30,14 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Стрічка через API (FR-9…FR-12) — головний екран застосунку.
- *
- * До цього тесту вона перевірялася лише на рівні запиту до БД. Але між запитом
- * і користувачем лежить ще половина шляху: розбір параметрів, їхня валідація,
- * перетворення віку в межі дат і DTO, який не має видавати зайвого. Саме через
- * це `SearchCriteria` мав нуль покриття, хоча клас цілком живий.
- */
+/** Стрічка через API (FR-9…FR-12). */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -51,12 +44,7 @@ class FeedApiTest {
     private User me;
     private String token;
 
-    /**
-     * Тести цього рівня не відкочують базу (це не @DataJpaTest), тож у ній лежать
-     * користувачі, створені іншими класами. Щоб стрічка була передбачуваною, кожен
-     * запуск живе у ВЛАСНОМУ місті й завжди фільтрує за ним — чужі дані просто
-     * не потрапляють у вибірку.
-     */
+    /** База між тестами не відкочується, тож кожен запуск живе у власному місті. */
     private String city;
 
     @BeforeEach
@@ -66,7 +54,6 @@ class FeedApiTest {
         token = jwtUtil.generateToken(me);
     }
 
-    /** Адреса стрічки, обмеженої власним містом цього тесту. */
     private String feed(String path, String extraParams) {
         String params = "city=" + city + (extraParams.isEmpty() ? "" : "&" + extraParams);
         return path + "?" + params;
@@ -98,7 +85,6 @@ class FeedApiTest {
     @Test
     @DisplayName("порожня стрічка каже про це прямо, а не віддає порожнечу")
     void emptyFeedIsExplicit() throws Exception {
-        // У цьому місті, крім мене, немає нікого
         MvcResult result = mvc.perform(get(feed("/api/users/next", ""))
                         .header(HttpHeaders.AUTHORIZATION, bearer(token)))
                 .andExpect(status().isBadRequest())
@@ -207,8 +193,6 @@ class FeedApiTest {
         mvc.perform(get("/api/users/next")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/users/feed")).andExpect(status().isUnauthorized());
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private MvcResult ok(String url) throws Exception {
         return mvc.perform(get(url).header(HttpHeaders.AUTHORIZATION, bearer(token)))

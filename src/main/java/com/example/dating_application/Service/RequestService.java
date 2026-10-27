@@ -44,18 +44,12 @@ public class RequestService {
         this.userTagsRepository = userTagsRepository;
     }
 
-    /**
-     * Результат лайку. Заповнений {@code chat} означає, що лайк був зустрічним
-     * і одразу став метчем — контролеру це потрібно, щоб надіслати сповіщення
-     * про ВЗАЄМНУ симпатію, а не про звичайний вхідний лайк.
-     */
+    /** Заповнений chat означає, що лайк був зустрічним і став метчем. */
     public record SendResult(Request request, Chat chat) {
     }
 
-    /** Транзакція: зустрічний лайк пише два рядки й створює чат — або все, або нічого. */
     @Transactional
     public SendResult send(Long fromUserId, SendRequestDTO dto) {
-        // Без цієї перевірки null доїжджав би до репозиторію й давав 500 замість зрозумілої 400
         if (dto.getToUserId() == null) {
             throw new BusinessException("toUserId is required");
         }
@@ -63,7 +57,6 @@ public class RequestService {
             throw new BusinessException("You cannot like yourself");
         }
 
-        // Блок у будь-якому напрямку повністю закриває взаємодію
         if (blockRepository.existsBetween(fromUserId, dto.getToUserId())) {
             throw new BusinessException("Interaction with this user is not available");
         }
@@ -80,18 +73,14 @@ public class RequestService {
             throw new BusinessException("You are already matched with this user");
         }
 
-        // Метч міг бути створений із ЇХНЬОГО лайку — тоді ACCEPTED-рядок належить їм,
-        // і перевірка вище його не бачить. Без цього можна було лайкнути людину,
-        // з якою вже є чат, і вона отримувала новий запит у «Симпатії».
+        // Метч міг виникнути з їхнього лайку, тоді ACCEPTED-рядок належить їм.
         var acceptedByThem = requestRepository.findByFromUserUserIdAndToUserUserIdAndStatus(
                 dto.getToUserId(), fromUserId, RequestStatus.ACCEPTED);
         if (acceptedByThem.isPresent()) {
             throw new BusinessException("You are already matched with this user");
         }
 
-        // Вони лайкнули першими й чекають відповіді — це вже взаємна симпатія.
-        // Приймаємо їхній лайк замість того, щоб класти назустріч другий рядок:
-        // інакше обидва бачили б одне одного в «Симпатіях» уже після метчу.
+        // Вони лайкнули першими: приймаємо їхній лайк замість другого рядка назустріч.
         var pendingFromThem = requestRepository.findByFromUserUserIdAndToUserUserIdAndStatus(
                 dto.getToUserId(), fromUserId, RequestStatus.PENDING);
         if (pendingFromThem.isPresent()) {
@@ -105,8 +94,7 @@ public class RequestService {
         if (Boolean.TRUE.equals(toUser.getBlocked())) {
             throw new BusinessException("Interaction with this user is not available");
         }
-        // Адміністратор не бере участі в знайомствах: зі стрічки він виключений,
-        // але без цієї перевірки прямий виклик API все одно створював лайк на нього.
+        // Адміністратор у знайомствах не бере участі.
         if (toUser.getRole() == Role.ADMIN) {
             throw new BusinessException("Administrators cannot be liked");
         }
@@ -122,7 +110,6 @@ public class RequestService {
         return new SendResult(requestRepository.save(r), null);
     }
 
-    /** Транзакція: статус запиту, зустрічний запит і створення чату мають бути неподільні. */
     @Transactional
     public Chat accept(Long requestId, Long userId) {
 
@@ -137,7 +124,6 @@ public class RequestService {
             throw new BusinessException("Request already processed");
         }
 
-        // Якщо після надсилання лайку з'явився блок — метч не створюємо
         if (blockRepository.existsBetween(r.getFromUser().getUserId(), r.getToUser().getUserId())) {
             throw new BusinessException("Interaction with this user is not available");
         }
@@ -145,9 +131,7 @@ public class RequestService {
         r.setStatus(RequestStatus.ACCEPTED);
         requestRepository.save(r);
 
-        // Якщо ми теж встигли лайкнути їх до того, як прийняли їхній лайк, —
-        // зустрічний рядок лишався б PENDING і висів у ЇХНІХ «Симпатіях»
-        // уже після створення чату. Закриваємо його тим самим метчем.
+        // Наш зустрічний PENDING-лайк закриваємо тим самим метчем.
         requestRepository
                 .findByFromUserUserIdAndToUserUserIdAndStatus(
                         userId, r.getFromUser().getUserId(), RequestStatus.PENDING)
@@ -179,28 +163,17 @@ public class RequestService {
         requestRepository.save(r);
     }
 
-    /**
-     * Вхідні симпатії, сторінкою. Лайки від заблокованих (у будь-якому напрямку)
-     * та від забанених адміном акаунтів у список не потрапляють — вони мають
-     * зникнути з поля зору.
-     *
-     * Раніше цей відсів робився в пам'яті вже після вибірки. З пагінацією так не
-     * можна: сторінка «розсмоктувалась» би після фільтрації, тож умову перенесено
-     * в SQL (див. RequestRepository#findIncomingVisible). Побічно це прибрало
-     * запит existsBetween на кожен рядок списку.
-     */
-    /** Скільки людей узагалі вподобали користувача (без пропусків). */
     public long countIncomingLikes(Long userId) {
         return requestRepository.countIncomingLikes(userId);
     }
 
+    /** Без заблокованих і забанених; відсів у SQL, щоб не ламати пагінацію. */
     public List<Request> incoming(Long userId, int page, int size) {
         return requestRepository.findIncomingVisible(
                 userId, RequestStatus.PENDING, PageRequest.of(page, size));
     }
 
     public List<Request> sent(Long userId, int page, int size) {
-        // «Надіслані лайки» — усі ініційовані запити, окрім пропусків (SKIPPED)
         return requestRepository.findByFromUserUserIdAndStatusNotOrderByCreatedAtDescRequestIdDesc(
                 userId, RequestStatus.SKIPPED, PageRequest.of(page, size));
     }
@@ -213,7 +186,7 @@ public class RequestService {
         var alreadySkipped = requestRepository.findByFromUserUserIdAndToUserUserIdAndStatus(
                 userId, skippedUserId, RequestStatus.SKIPPED);
         if (alreadySkipped.isPresent()) {
-            return; // ідемпотентно: вже пропущено — нового рядка не створюємо
+            return;
         }
 
         Request skip = new Request();
@@ -231,11 +204,7 @@ public class RequestService {
                 userId, RequestStatus.SKIPPED, PageRequest.of(page, size));
     }
 
-    /**
-     * Разом із самою симпатією віддаємо те, що потрібно її картці: вік, місто,
-     * кількість фото відправника і скільки тем у нього спільних з отримувачем.
-     * Інакше клієнт добирав би це окремим запитом на кожен рядок списку.
-     */
+    /** Разом із симпатією віддаємо дані для картки, щоб клієнт не добирав їх окремо. */
     public RequestResponseDTO toResponseDTO(Request request) {
         var from = request.getFromUser();
 

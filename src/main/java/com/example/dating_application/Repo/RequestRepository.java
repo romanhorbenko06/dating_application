@@ -22,18 +22,7 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
 
     List<Request> findByFromUserUserIdAndStatusNot(Long userId, RequestStatus status);
 
-    /**
-     * Вхідні симпатії — сторінками, найсвіжіші першими.
-     *
-     * Відсів заблокованих і забанених винесено в SQL з тієї ж причини, що й у
-     * {@link NotificationRepository#findVisible}: у пам'яті він давав би
-     * existsBetween на КОЖЕН рядок (N+1) і ламав би пагінацію — після фільтрації
-     * зі сторінки лишалась би довільна кількість записів, і клієнт не міг би
-     * відрізнити «сторінка неповна» від «список скінчився».
-     *
-     * Сортування подвійне: createdAt може збігтися, і без requestId порядок між
-     * сторінками не гарантований — той самий запис міг би приїхати двічі.
-     */
+    /** Відсів заблокованих і забанених у SQL, щоб не ламати пагінацію; requestId — для стабільного порядку. */
     @Query("""
             SELECT r FROM Request r
             WHERE r.toUser.userId = :userId
@@ -50,17 +39,7 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
                                       @Param("status") RequestStatus status,
                                       Pageable pageable);
 
-    /**
-     * Скільки людей УЗАГАЛІ вподобали цього користувача — незалежно від того,
-     * відповів він уже чи ні. Пропуски (SKIPPED) не рахуються: пропустити —
-     * не те саме, що вподобати.
-     *
-     * Потрібно для плитки «вподобали вас» в анкеті: там показник накопичувальний,
-     * як і сусідні «взаємні збіги». Кількість тих, хто ЧЕКАЄ відповіді, — інша
-     * величина, її дає findIncomingVisible зі статусом PENDING.
-     *
-     * Фільтр той самий, що й у списку: забанені та заблоковані не рахуються.
-     */
+    /** Накопичувальний показник для анкети: усі, хто вподобав, без пропусків, забанених і заблокованих. */
     @Query("""
             SELECT COUNT(r) FROM Request r
             WHERE r.toUser.userId = :userId
@@ -74,11 +53,9 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
             """)
     long countIncomingLikes(@Param("userId") Long userId);
 
-    /** Надіслані симпатії (усе, крім пропусків) — сторінками. */
     List<Request> findByFromUserUserIdAndStatusNotOrderByCreatedAtDescRequestIdDesc(
             Long userId, RequestStatus status, Pageable pageable);
 
-    /** Пропущені профілі — сторінками. */
     List<Request> findByFromUserUserIdAndStatusOrderByCreatedAtDescRequestIdDesc(
             Long userId, RequestStatus status, Pageable pageable);
 

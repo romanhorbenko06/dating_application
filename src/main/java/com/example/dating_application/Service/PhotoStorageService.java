@@ -20,16 +20,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Файлове сховище фотографій.
- *
- * У БД лежить лише ІМ'Я файлу, самі байти — на диску, у теці поруч із jar-ником
- * (шлях налаштовується через app.photos.dir). Тека створюється в конструкторі,
- * тож застосунок або стартує з робочим сховищем, або падає одразу, а не через
- * тиждень на першому завантаженні фото.
- *
- * Тека НЕ віддається статикою: єдиний шлях до пікселів — через PhotoService,
- * який перевіряє метч. Інакше ключова механіка застосунку (фото лише після
- * взаємної симпатії) трималася б тільки на тому, що ніхто не вгадав посилання.
+ * Файлове сховище фотографій: у БД лише ім'я файлу, байти на диску (app.photos.dir).
+ * Тека не віддається статикою: доступ до пікселів лише через PhotoService, який перевіряє метч.
  */
 @Service
 public class PhotoStorageService {
@@ -48,27 +40,18 @@ public class PhotoStorageService {
         logger.info("Photo storage directory: {}", root);
     }
 
-    /**
-     * Записує байти у новий файл і повертає згенероване ім'я.
-     *
-     * Ім'я — UUID: воно унікальне без походу в БД, не залежить від того, як файл
-     * називався на пристрої користувача, і його не можна перебрати ззовні.
-     * Розширення лишаємо реальне (визначене за сигнатурою) — щоб потім знати,
-     * який Content-Type віддавати.
-     */
+    /** Ім'я — UUID, розширення за реальною сигнатурою файлу. */
     public String save(byte[] data, ImageFormat format) {
         String fileName = UUID.randomUUID() + "." + format.getExtension();
         Path target = resolveSafely(fileName);
         try {
             Files.write(target, data, StandardOpenOption.CREATE_NEW);
         } catch (IOException e) {
-            // Проблема сервера, не користувача → 500 із логом, а не 400
             throw new IllegalStateException("Failed to store photo file " + fileName, e);
         }
         return fileName;
     }
 
-    /** Читає один файл. Відсутній файл — це неузгодженість БД і диска, тобто помилка сервера. */
     public byte[] read(String fileName) {
         Path file = resolveSafely(fileName);
         try {
@@ -80,12 +63,7 @@ public class PhotoStorageService {
         }
     }
 
-    /**
-     * Пакетне читання: на вхід — список імен із БД, на вихід — байти в тому ж порядку.
-     *
-     * Файл, якого немає на диску, ПРОПУСКАЄМО з попередженням у лог: краще показати
-     * решту фотографій профілю, ніж завалити весь запит через один загублений файл.
-     */
+    /** Відсутній на диску файл пропускаємо з попередженням, щоб не валити весь профіль. */
     public Map<String, byte[]> readAll(Collection<String> fileNames) {
         Map<String, byte[]> result = new LinkedHashMap<>();
         for (String fileName : fileNames) {
@@ -98,7 +76,6 @@ public class PhotoStorageService {
         return result;
     }
 
-    /** Видаляє файл. Відсутність файлу не вважається помилкою — запис у БД усе одно прибираємо. */
     public void delete(String fileName) {
         try {
             Files.deleteIfExists(resolveSafely(fileName));
@@ -107,14 +84,7 @@ public class PhotoStorageService {
         }
     }
 
-    /**
-     * Видаляє файл ТІЛЬКИ якщо транзакція успішно закомітилась.
-     *
-     * Якщо видаляти одразу, а транзакція потім відкотиться, ми втратимо файл
-     * користувача, який насправді нікуди не подівся — і відновити його вже нізвідки.
-     * Зворотний ризик (транзакція пройшла, а файл лишився) дешевший: це просто
-     * зайві байти на диску.
-     */
+    /** Видаляє файл лише після коміту: при відкаті транзакції файл інакше було б втрачено. */
     public void deleteAfterCommit(String fileName) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             delete(fileName);
@@ -128,11 +98,7 @@ public class PhotoStorageService {
         });
     }
 
-    /**
-     * Захист від виходу за межі теки: ім'я на кшталт "../../application.properties"
-     * не повинно дати прочитати чужий файл. Імена генеруємо ми самі, але перевірка
-     * лишається — вона коштує нічого, а помилка тут коштувала б усім вмістом диска.
-     */
+    /** Захист від "../" у імені файлу. */
     private Path resolveSafely(String fileName) {
         if (fileName == null || fileName.isBlank()) {
             throw new BusinessException("Photo file name is required");

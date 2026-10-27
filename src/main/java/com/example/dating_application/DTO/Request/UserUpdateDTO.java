@@ -34,8 +34,7 @@ public class UserUpdateDTO {
     @NotNull(message = "Dating goal is required")
     private DatingGoal datingGoal;
 
-    // Необов'язкові: null = «не вказано». Оскільки це PUT (повна заміна анкети),
-    // відсутнє поле в тілі запиту очищає раніше збережене значення.
+    // PUT: відсутнє поле очищає збережене значення.
     private EducationLevel educationLevel;
 
     private Temperament temperament;

@@ -49,7 +49,6 @@ public class JwtFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Вихід із застосунку (FR-5): підпис ще валідний, але токен анульовано
             if (tokenRevocationService.isRevoked(jwtUtil.getJtiFromToken(token))) {
                 SecurityContextHolder.clearContext();
                 filterChain.doFilter(request, response);
@@ -65,15 +64,13 @@ public class JwtFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Забанений адміністратором акаунт: раніше виданий токен більше не діє
             if (Boolean.TRUE.equals(user.getBlocked())) {
                 SecurityContextHolder.clearContext();
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            // Роль беремо з БД, а не з claim'а токена: інакше пониження ролі
-            // діяло б лише після закінчення строку дії вже виданого токена.
+            // Роль з БД, щоб пониження ролі діяло одразу.
             List<SimpleGrantedAuthority> authorities = List.of(
                     new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
             );

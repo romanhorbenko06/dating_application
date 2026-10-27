@@ -5,10 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Визначення формату за СИГНАТУРОЮ файлу, а не за розширенням чи заголовком
- * Content-Type: і те, й те приходить від клієнта й нічого не гарантує.
- */
+/** Формат визначається за сигнатурою, а не за розширенням чи Content-Type. */
 class ImageFormatTest {
 
     @Test
@@ -45,11 +42,9 @@ class ImageFormatTest {
         assertThat(ImageFormat.JPEG.getExtension()).isEqualTo("jpg");
         assertThat(ImageFormat.JPEG.getContentType()).isEqualTo("image/jpeg");
         assertThat(ImageFormat.PNG.getContentType()).isEqualTo("image/png");
-        // allowed() йде в текст помилки для користувача — там назви форматів, не розширення
         assertThat(ImageFormat.allowed()).contains("JPEG", "PNG", "GIF", "BMP");
     }
 
-    /** Доповнює сигнатуру нулями: detect вимагає щонайменше 12 байтів. */
     private static byte[] pad(int... signature) {
         byte[] data = new byte[16];
         for (int i = 0; i < signature.length; i++) {

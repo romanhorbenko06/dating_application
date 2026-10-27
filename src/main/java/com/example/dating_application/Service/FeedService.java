@@ -18,11 +18,6 @@ public class FeedService {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Кілька наступних кандидатів одним запитом — для смуги «далі у стрічці».
-     * Той самий добір і те саме ранжування, що й у {@link #getNextProfile},
-     * лише більший розмір сторінки: перший елемент завжди дорівнює поточній анкеті.
-     */
     public List<User> getUpcomingProfiles(Long userId, SearchCriteria criteria, int limit) {
         return findCandidates(userId, criteria, limit);
     }
@@ -36,11 +31,7 @@ public class FeedService {
         return candidates.get(0);
     }
 
-    /** Спільний добір кандидатів: фільтри → межі дат → запит із ранжуванням за спільними тегами. */
     private List<User> findCandidates(Long userId, SearchCriteria criteria, int limit) {
-        // Вік → межі дати народження (фільтрація виконується в БД):
-        //   minAge → народжений НЕ ПІЗНІШЕ ніж (сьогодні - minAge) років
-        //   maxAge → народжений НЕ РАНІШЕ ніж (сьогодні - (maxAge + 1)) років
         boolean hasMinAge = criteria.getMinAge() != null;
         boolean hasMaxAge = criteria.getMaxAge() != null;
         LocalDate bornBefore = hasMinAge ? LocalDate.now().minusYears(criteria.getMinAge()) : null;

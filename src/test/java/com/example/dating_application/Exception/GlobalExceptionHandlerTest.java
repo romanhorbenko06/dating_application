@@ -34,23 +34,11 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Єдине місце, де вирішується, ЩО побачить клієнт при кожній помилці.
- *
- * Цінність тестів тут двояка. По-перше, це фактично контракт API: фронт
- * розбирає саме ці поля (`message`, `fieldErrors`, `status`), і мовчазна
- * зміна формату ламає підказки під полями форм.
- *
- * По-друге — безпека. Внутрішні подробиці назовні не йдуть: текст SQL-помилки,
- * стек винятку чи причина відмови в доступі розкривають будову системи саме
- * тому, хто її промацує.
- */
+/** Контракт помилок API з фронтом і те, що внутрішні подробиці назовні не йдуть. */
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
     private final WebRequest request = webRequest();
-
-    // ── безпека: назовні не йде зайве ────────────────────────────────────
 
     @Test
     @DisplayName("відмова в доступі не пояснює, ЧОМУ саме відмовлено")
@@ -93,8 +81,6 @@ class GlobalExceptionHandlerTest {
                     .doesNotContain("HikariPool", "UserService.java", "NullPointer");
         }
     }
-
-    // ── контракт із фронтом ──────────────────────────────────────────────
 
     @Test
     @DisplayName("порушення бізнес-правила — єдиний випадок, коли текст іде клієнту")
@@ -143,8 +129,6 @@ class GlobalExceptionHandlerTest {
                 .as("ім'я методу відкидається, лишається сам параметр")
                 .containsEntry("limit", "limit must not exceed 20");
     }
-
-    // ── решта відповідей ─────────────────────────────────────────────────
 
     @Test
     @DisplayName("зіпсований JSON дає 400, а не 500")
@@ -243,8 +227,6 @@ class GlobalExceptionHandlerTest {
                 .containsKeys("timestamp", "status", "message", "error");
         assertThat(body(response).get("status")).isEqualTo(HttpStatus.BAD_REQUEST.value());
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private static WebRequest webRequest() {
         WebRequest request = mock(WebRequest.class);

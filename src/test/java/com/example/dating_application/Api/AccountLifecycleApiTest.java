@@ -37,14 +37,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Життя акаунта: редагування анкети (PUT і PATCH) та ВИДАЛЕННЯ.
- *
- * Видалення тут найважливіше: воно має прибрати за собою геть усе — симпатії,
- * чати з листуванням, скарги, сповіщення, фото. Рядок, що лишився висіти,
- * означає або биті посилання в чужих екранах, або чужі персональні дані
- * в базі після того, як людина попросила її стерти.
- */
+/** Редагування анкети (PUT і PATCH) і видалення акаунта разом з усіма залежними даними. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -133,7 +126,6 @@ class AccountLifecycleApiTest {
     @Test
     @DisplayName("видалення акаунта прибирає ЗА СОБОЮ все: симпатії, чат, листування, скаргу, сповіщення, фото")
     void deletingAccountCleansEverythingUp() throws Exception {
-        // Створюємо повний слід: метч, переписку, скаргу й сповіщення
         mvc.perform(post("/api/requests/send")
                         .header(HttpHeaders.AUTHORIZATION, bearer(bohdanToken))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -200,8 +192,6 @@ class AccountLifecycleApiTest {
         assertThat(getJson(aliceToken, "/api/users/me").has("email")).isTrue();
         assertThat(getJson(aliceToken, "/api/users/" + bohdan.getUserId()).has("email")).isFalse();
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private JsonNode getJson(String token, String url) throws Exception {
         MvcResult result = mvc.perform(get(url).header(HttpHeaders.AUTHORIZATION, bearer(token)))

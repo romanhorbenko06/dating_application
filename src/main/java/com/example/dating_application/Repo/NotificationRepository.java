@@ -13,16 +13,7 @@ import java.util.Optional;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    /**
-     * Видимі сповіщення користувача — сторінками, найсвіжіші першими.
-     *
-     * Фільтр «заблоковані та забанені» винесений у SQL навмисно: у пам'яті він давав би
-     * existsBetween на КОЖНЕ сповіщення (N+1) і, головне, ламав би пагінацію —
-     * зі сторінки в 50 записів після фільтрації лишалось би довільне число.
-     *
-     * Прапорець замість `:onlyUnread IS NULL`: у Hibernate порівняння параметра з NULL
-     * ламає виведення типів (та сама пастка, що у фільтрах стрічки).
-     */
+    /** Фільтр у SQL, щоб не ламати пагінацію; прапорець замість :onlyUnread IS NULL через виведення типів у Hibernate. */
     @Query("""
             SELECT n FROM Notification n
             WHERE n.recipient.userId = :userId
@@ -61,7 +52,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
               )
             """)
     long countVisibleUnread(@Param("userId") Long userId);
-
 
     Optional<Notification> findFirstByRecipientUserIdAndChatIdAndTypeAndIsReadFalse(
             Long recipientId, Long chatId, NotificationType type);

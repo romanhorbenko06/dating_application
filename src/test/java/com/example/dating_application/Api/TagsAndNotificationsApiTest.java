@@ -30,13 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Теми (FR-8.3) і центр сповіщень (FR-18, FR-19, UC-11).
- *
- * Теми — те, за чим стрічка ранжує людей, тож «додав тег» має бути помітно
- * одразу. Сповіщення перевіряються не поодинці, а як наслідок дій: лайк
- * породжує NEW_LIKE, взаємність — NEW_MATCH обом, повідомлення — NEW_MESSAGE.
- */
+/** Теми (FR-8.3) і центр сповіщень (FR-18, FR-19, UC-11). */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -59,8 +53,6 @@ class TagsAndNotificationsApiTest {
         aliceToken = jwtUtil.generateToken(alice);
         bohdanToken = jwtUtil.generateToken(bohdan);
     }
-
-    // ── теми ─────────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("довідник тем не порожній — його засіває застосунок при старті")
@@ -126,8 +118,6 @@ class TagsAndNotificationsApiTest {
         mvc.perform(get("/api/tags")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/tags/my")).andExpect(status().isUnauthorized());
     }
-
-    // ── сповіщення ───────────────────────────────────────────────────────
 
     @Test
     @DisplayName("симпатія породжує сповіщення адресату (FR-19.2)")
@@ -228,8 +218,6 @@ class TagsAndNotificationsApiTest {
         mvc.perform(get("/api/notifications?size=0").header(HttpHeaders.AUTHORIZATION, bearer(aliceToken)))
                 .andExpect(status().isBadRequest());
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private void like(String token, long toUserId) throws Exception {
         mvc.perform(post("/api/requests/send")

@@ -12,12 +12,11 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long notificationId;
 
-    /** Кому адресоване сповіщення. */
     @ManyToOne
     @JoinColumn(name = "recipient_id", nullable = false)
     private User recipient;
 
-    /** Хто спричинив подію (лайкнув, написав). */
+    /** Хто спричинив подію. */
     @ManyToOne
     @JoinColumn(name = "actor_id")
     private User actor;
@@ -26,15 +25,9 @@ public class Notification {
     @Column(nullable = false)
     private NotificationType type;
 
-    /** Куди вести з кліку — для NEW_MATCH і NEW_MESSAGE; для NEW_LIKE чату ще немає. */
     private Long chatId;
 
-    /**
-     * Скільки повідомлень згорнуто в це сповіщення (лише для NEW_MESSAGE).
-     * Рядок на кожне повідомлення означав би тисячі записів на одну розмову,
-     * тож непрочитані повідомлення одного чату накопичуються в ОДНОМУ сповіщенні.
-     * Для інших типів завжди 1.
-     */
+    /** Непрочитані повідомлення одного чату згортаються в одне сповіщення; для інших типів завжди 1. */
     @Column(nullable = false)
     private Integer messageCount = 1;
 

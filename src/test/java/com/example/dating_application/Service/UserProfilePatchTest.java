@@ -12,6 +12,7 @@ import com.example.dating_application.Repo.BlockRepository;
 import com.example.dating_application.Repo.ChatRepository;
 import com.example.dating_application.Repo.ComplaintRepository;
 import com.example.dating_application.Repo.MessageRepository;
+import com.example.dating_application.Repo.IslandGameRepository;
 import com.example.dating_application.Repo.NotificationRepository;
 import com.example.dating_application.Repo.PhotoRepository;
 import com.example.dating_application.Repo.RequestRepository;
@@ -32,17 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
-/**
- * Семантика PATCH — місце, де легко зробити тихо неправильно.
- *
- * Правило: орієнтир не значення поля, а сама ПРИСУТНІСТЬ ключа в тілі запиту.
- * Ключа немає → не чіпаємо. Ключ є зі значенням null → очищаємо. Саме тому
- * «не вказано» (null) і «волію не вказувати» (PREFER_NOT_TO_SAY) лишаються
- * різними відповідями, а не зливаються в одну.
- *
- * Помилка тут не впаде й не викине виняток — вона просто мовчки не збереже
- * або мовчки зітре поле, тож без тесту її помітити майже неможливо.
- */
+/** PATCH: ключа немає — не чіпаємо, ключ із null — очищаємо. */
 @ExtendWith(MockitoExtension.class)
 class UserProfilePatchTest {
 
@@ -57,6 +48,7 @@ class UserProfilePatchTest {
     @Mock private PhotoRepository photoRepository;
     @Mock private PhotoStorageService photoStorageService;
     @Mock private NotificationRepository notificationRepository;
+    @Mock private IslandGameRepository islandGameRepository;
 
     private UserService service;
     private User user;
@@ -65,7 +57,7 @@ class UserProfilePatchTest {
     void setUp() {
         service = new UserService(userRepository, complaintRepository, requestRepository,
                 chatRepository, messageRepository, blockRepository, photoRepository,
-                photoStorageService, notificationRepository);
+                photoStorageService, notificationRepository, islandGameRepository);
 
         user = new User();
         user.setUserId(USER_ID);
@@ -80,8 +72,7 @@ class UserProfilePatchTest {
         user.setChildrenStatus(ChildrenStatus.UNDECIDED);
 
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        // lenient: тести на відмову до save не доходять, і суворий режим Mockito
-        // сварився б на «невикористану заглушку» замість того, щоб перевіряти правило
+        // lenient: тести на відмову до save не доходять.
         lenient().when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -102,8 +93,6 @@ class UserProfilePatchTest {
     @Test
     @DisplayName("явний null ОЧИЩАЄ необов'язковий енум")
     void explicitNullClearsOptionalEnum() {
-        // Саме цього не вміла попередня версія: null трактувався як «не чіпати»,
-        // і користувач не міг прибрати колись указану освіту.
         UserPatchDTO dto = new UserPatchDTO();
         dto.setEducationLevel(null);
 

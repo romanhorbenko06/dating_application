@@ -15,13 +15,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Прибирання протухлих кодів підтвердження.
- *
- * У рядку лежить не лише код, а й дані анкети з OTP-кроку (ім'я, стать, дата
- * народження, місто) — тобто персональні дані людини, яка реєстрацію не
- * завершила. Тримати їх після закінчення строку немає підстав.
- */
+/** Прибирання протухлих кодів підтвердження. */
 @ExtendWith(MockitoExtension.class)
 class VerificationCodeCleanupServiceTest {
 

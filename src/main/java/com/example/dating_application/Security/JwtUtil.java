@@ -26,16 +26,8 @@ public class JwtUtil {
 
     private SecretKey key;
 
-    /** HS256 вимагає щонайменше 256 біт ключа. */
     private static final int MIN_KEY_BYTES = 32;
 
-    /**
-     * Ключ підпису свідомо не має значення за замовчуванням: раніше в репозиторії
-     * лежав робочий дефолт, а це означає, що будь-хто з доступом до коду міг
-     * підписати токен від імені будь-якого користувача, включно з адміном.
-     *
-     * Тому — падаємо на старті з поясненням, а не мовчки працюємо з відомим ключем.
-     */
     @PostConstruct
     public void init() {
         if (secret == null || secret.isBlank() || secret.startsWith("${")) {
@@ -72,9 +64,7 @@ public class JwtUtil {
     private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
                 .claims(claims)
-                // jti — унікальний id токена. Потрібен для виходу (FR-5): відкликати
-                // можна лише те, що вміємо назвати. Дає точковий logout — гасне
-                // конкретний токен, а не всі сесії користувача.
+                // jti потрібен для точкового logout.
                 .id(UUID.randomUUID().toString())
                 .subject(subject)
                 .issuedAt(new Date())
@@ -87,12 +77,10 @@ public class JwtUtil {
         return parseClaims(token).getSubject();
     }
 
-    /** Claim jti — ключ у чорному списку відкликаних токенів. */
     public String getJtiFromToken(String token) {
         return parseClaims(token).getId();
     }
 
-    /** До цього моменту токен треба тримати в чорному списку; далі він недійсний сам. */
     public Date getExpirationFromToken(String token) {
         return parseClaims(token).getExpiration();
     }
@@ -105,9 +93,7 @@ public class JwtUtil {
                 .getBody();
     }
 
-    // Геттера ролі з токена свідомо немає: авторитети мають братися з БД
-    // (див. JwtFilter), інакше пониження ролі не діє до кінця життя токена.
-    // Claim "role" лишається в токені лише як довідкова інформація для фронтенду.
+    // Геттера ролі немає свідомо: авторитети беруться з БД (див. JwtFilter).
 
     public boolean isTokenValid(String token) {
         try {

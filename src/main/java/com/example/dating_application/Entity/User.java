@@ -40,7 +40,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     private DatingGoal datingGoal;
 
-    // Необов'язкові поля анкети (FR-8.5 / 8.6 / 8.7): користувач може їх не заповнювати
     @Enumerated(EnumType.STRING)
     private EducationLevel educationLevel;
 

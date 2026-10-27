@@ -34,10 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Керування власними світлинами (FR-8.1): завантаження, головна, видалення,
- * віддача байтів. Доступ до ЧУЖИХ фото перевіряє PhotoGatingApiTest.
- */
+/** Керування власними фото (FR-8.1). */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -176,8 +173,6 @@ class PhotoManagementApiTest {
         mvc.perform(get("/api/photos/user/" + owner.getUserId())).andExpect(status().isUnauthorized());
         mvc.perform(multipart("/api/photos").file(imagePart())).andExpect(status().isUnauthorized());
     }
-
-    // ── допоміжне ────────────────────────────────────────────────────────
 
     private long upload(boolean main) throws Exception {
         MvcResult result = mvc.perform(multipart("/api/photos").file(imagePart())

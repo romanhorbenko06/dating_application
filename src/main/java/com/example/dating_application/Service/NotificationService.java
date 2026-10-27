@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
 @Service
 public class NotificationService {
 
@@ -28,7 +27,6 @@ public class NotificationService {
         this.realtimeNotifier = realtimeNotifier;
     }
 
-
     public void notifyNewLike(User recipient, User actor) {
         create(recipient, actor, NotificationType.NEW_LIKE, null);
     }
@@ -38,6 +36,35 @@ public class NotificationService {
         User b = chat.getUser2();
         create(a, b, NotificationType.NEW_MATCH, chat.getChatId());
         create(b, a, NotificationType.NEW_MATCH, chat.getChatId());
+    }
+
+    public void notifyIslandInvite(Chat chat, User inviter) {
+        create(otherParticipant(chat, inviter), inviter, NotificationType.ISLAND_INVITE, chat.getChatId());
+    }
+
+    /** Непрочитане сповіщення гри в цьому чаті лише оновлюється, щоб торг не засмічував центр сповіщень. */
+    @Transactional
+    public void notifyIslandUpdate(Chat chat, User actor) {
+        User recipient = otherParticipant(chat, actor);
+        var existing = notificationRepository.findFirstByRecipientUserIdAndChatIdAndTypeAndIsReadFalse(
+                recipient.getUserId(), chat.getChatId(), NotificationType.ISLAND_UPDATE);
+        if (existing.isPresent()) {
+            Notification n = existing.get();
+            n.setActor(actor);
+            n.setCreatedAt(LocalDateTime.now());
+            realtimeNotifier.notifyRecipient(recipient.getUserId(), toResponseDTO(notificationRepository.save(n)));
+            return;
+        }
+        create(recipient, actor, NotificationType.ISLAND_UPDATE, chat.getChatId());
+    }
+
+    /** Острів завершує той, хто погодився останнім, тож сповіщаємо іншого. */
+    public void notifyIslandCompleted(Chat chat, User finisher) {
+        create(otherParticipant(chat, finisher), finisher, NotificationType.ISLAND_COMPLETED, chat.getChatId());
+    }
+
+    private static User otherParticipant(Chat chat, User user) {
+        return chat.getUser1().getUserId().equals(user.getUserId()) ? chat.getUser2() : chat.getUser1();
     }
 
     @Transactional
@@ -52,13 +79,11 @@ public class NotificationService {
         if (existing.isPresent()) {
             Notification n = existing.get();
             n.setMessageCount(n.getMessageCount() == null ? 2 : n.getMessageCount() + 1);
-            // актор і час оновлюємо: показуємо ОСТАННЬОГО відправника і свіжий час,
-            // щоб сповіщення піднялось нагору стрічки
+            // Останній відправник і свіжий час, щоб сповіщення піднялось нагору.
             n.setActor(sender);
             n.setCreatedAt(LocalDateTime.now());
 
             Notification saved = notificationRepository.save(n);
-            // той самий notificationId — клієнт замінює наявний запис, а не додає новий
             realtimeNotifier.notifyRecipient(recipient.getUserId(), toResponseDTO(saved));
             return;
         }
@@ -79,7 +104,6 @@ public class NotificationService {
         Notification saved = notificationRepository.save(n);
         realtimeNotifier.notifyRecipient(recipient.getUserId(), toResponseDTO(saved));
     }
-
 
     public List<NotificationResponseDTO> list(Long userId, boolean unreadOnly, int page, int size) {
         return notificationRepository.findVisible(userId, unreadOnly, PageRequest.of(page, size)).stream()

@@ -70,8 +70,7 @@ public class PhotoController {
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(binary.contentType()))
-                // Приватний контент: доступ може зникнути після блокування,
-                // тож проміжним кешам віддавати його не можна.
+                // Доступ може зникнути після блокування, тож без проміжних кешів.
                 .cacheControl(CacheControl.noStore().cachePrivate())
                 .body(binary.data());
     }

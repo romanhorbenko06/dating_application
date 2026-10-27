@@ -34,16 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * ЯДРО ПРОДУКТУ (FR-14.1): фото відкриваються ТІЛЬКИ після взаємної симпатії.
- *
- * Перевіряється через справжній ланцюг запиту: JWT-фільтр → Spring Security →
- * контролер → правило доступу → диск. Модульний тест тут не допоміг би: частина
- * умови живе в запитах до БД, а частина захисту — у фільтрах.
- *
- * MockMvc, а не HTTP-клієнт: у Boot 4 TestRestTemplate тягне окремий модуль
- * spring-boot-restclient, якого в проєкті немає, а фільтри MockMvc проходить ті самі.
- */
+/** Фото відкриваються лише після взаємної симпатії (FR-14.1), перевірка через увесь ланцюг запиту. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -145,8 +136,6 @@ class PhotoGatingApiTest {
                 .andExpect(status().isForbidden());
     }
 
-    // ── допоміжне ────────────────────────────────────────────────────────
-
     private User newUser(String name) {
         User u = new User();
         u.setName(name);
@@ -161,7 +150,6 @@ class PhotoGatingApiTest {
         return userRepository.save(u);
     }
 
-    /** Взаємна симпатія через справжній API: лайк Богдана + прийняття Аліною. */
     private void makeMatch() throws Exception {
         mvc.perform(post("/api/requests/send")
                         .header(HttpHeaders.AUTHORIZATION, bearer(bohdanToken))
@@ -209,7 +197,6 @@ class PhotoGatingApiTest {
         return "Bearer " + token;
     }
 
-    /** Найменша картинка, яку бекенд усе ще погодиться обробити. */
     private static byte[] tinyPng() {
         try {
             BufferedImage image = new BufferedImage(64, 64, BufferedImage.TYPE_INT_RGB);
